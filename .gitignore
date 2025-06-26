@@ -1,0 +1,7 @@
+# Ignorar dependencias y carpetas temporales
+node_modules/
+dist/
+build/
+.vscode/
+.env
+.DS_Store
