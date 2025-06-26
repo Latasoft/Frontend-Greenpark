@@ -133,7 +133,7 @@ const Login: React.FC = () => {
         />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-12">
           <h2 className="text-3xl font-bold mb-4">
-            Bienvenido a Cursos de Greenpark
+            Bienvenido a Cursos de Greenpark AcademIA
           </h2>
           <p className="text-center text-lg">
             Accede a tu cuenta para continuar tu aprendizaje en sostenibilidad y desarrollo verde
