@@ -113,7 +113,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-[#1A3D33]">Dirección</h3>
-                    <p className="text-gray-600">Los Damascos s/n, Osorno, Chile</p>
+                    <p className="text-gray-600">Los Damascos 132,Francke Osorno, Chile</p>
                   </div>
                 </div>
 
@@ -125,7 +125,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-[#1A3D33]">Teléfono</h3>
-                    <p className="text-gray-600">+569 5817 1194</p>
+                    <p className="text-gray-600">+569 8011 8174</p>
                   </div>
                 </div>
 
