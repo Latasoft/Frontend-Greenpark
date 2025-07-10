@@ -2,9 +2,10 @@ import { useState, useRef } from 'react';
 
 interface LibraryCreatorProps {
   onCancel: () => void;
+  onBookCreated: () => void; // Nuevo prop para notificar creación exitosa
 }
 
-const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
+const LibraryCreator = ({ onCancel, onBookCreated }: LibraryCreatorProps) => {
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -13,6 +14,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
   });
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,12 +25,14 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
       return;
     }
 
+    setLoading(true);
+
     const form = new FormData();
     form.append('title', formData.title);
     form.append('author', formData.author);
     form.append('description', formData.description);
     form.append('pages', formData.pages);
-    form.append('pdf', file); // este nombre debe coincidir con upload.single('pdf')
+    form.append('pdf', file);
 
     try {
       const response = await fetch('https://greenpark-backend-0ua6.onrender.com/api/books/upload', {
@@ -40,16 +44,18 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
 
       if (response.ok) {
         alert('Libro subido correctamente 🎉');
-        // Resetear campos
         setFormData({ title: '', author: '', description: '', pages: '' });
         setFile(null);
-        onCancel(); // cerrar modal o vista si aplica
+        onBookCreated();  // Avisar al padre que se creó el libro para refrescar lista
+        onCancel();        // Cerrar formulario
       } else {
         alert(result.error || 'Error al subir el libro.');
       }
     } catch (err) {
       console.error('Error en la solicitud:', err);
       alert('Error al conectar con el servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,6 +95,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52] focus:bg-[#8BAE52]/5"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -100,6 +107,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                 onChange={(e) => setFormData({ ...formData, author: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52] focus:bg-[#8BAE52]/5"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -111,6 +119,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                 onChange={(e) => setFormData({ ...formData, pages: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52] focus:bg-[#8BAE52]/5"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -122,6 +131,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52] focus:bg-[#8BAE52]/5"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -147,6 +157,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                         type="button"
                         onClick={() => setFile(null)}
                         className="mt-2 text-sm text-red-600 hover:text-red-800"
+                        disabled={loading}
                       >
                         Eliminar
                       </button>
@@ -165,6 +176,7 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
                             accept=".pdf"
                             className="sr-only"
                             onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            disabled={loading}
                           />
                         </label>
                         <p>o arrastra y suelta</p>
@@ -180,15 +192,43 @@ const LibraryCreator = ({ onCancel }: LibraryCreatorProps) => {
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={loading}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#7a9947]"
+                disabled={loading}
+                className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#7a9947] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center"
               >
-                Subir Libro
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 01-8 8z"
+                      />
+                    </svg>
+                    Generando libro...
+                  </>
+                ) : (
+                  'Subir Libro'
+                )}
               </button>
             </div>
           </div>
