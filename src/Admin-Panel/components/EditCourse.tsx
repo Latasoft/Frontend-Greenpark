@@ -13,7 +13,7 @@ const EditCourse = () => {
   useEffect(() => {
     const fetchCurso = async () => {
       try {
-        const res = await fetch(`https://greenpark-backend.onrender.com/api/cursos/${id}`);
+        const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`); //se cambia la URL a la correcta
         if (!res.ok) throw new Error("Curso no encontrado");
         const data = await res.json();
         setCurso(data);

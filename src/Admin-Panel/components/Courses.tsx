@@ -18,7 +18,7 @@ const Courses: React.FC = () => {
 
   const fetchCursos = async () => {
     try {
-      const response = await fetch('https://greenpark-backend.onrender.com/api/cursos/lista');
+      const response = await fetch('https://greenpark-backend-0ua6.onrender.com/api/cursos/lista');
       if (!response.ok) throw new Error('Error al cargar los cursos');
 
       const data = await response.json();

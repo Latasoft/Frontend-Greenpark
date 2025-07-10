@@ -18,7 +18,7 @@ const Records = () => {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://greenpark-backend.onrender.com/api/auth/users', {
+      const res = await axios.get('https://greenpark-backend-0ua6.onrender.com/api/auth/users', {
         headers: {
           Authorization: `Bearer ${token}`,  // ¡IMPORTANTE!
         },

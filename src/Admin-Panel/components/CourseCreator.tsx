@@ -125,7 +125,7 @@ const CrearCurso = () => {
     });
 
     try {
-      const res = await fetch("https://greenpark-backend.onrender.com/api/cursos", {
+      const res = await fetch("https://greenpark-0ua6-backend.onrender.com/api/cursos", {
         method: "POST",
         body: formData,
       });
