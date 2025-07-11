@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
 
-interface Enlace {
-  nombre: string;
-  url: string;
-}
-
-interface Pregunta {
-  pregunta: string;
-  opciones: string[];
-  respuestaCorrecta: number;
-}
-
 interface Modulo {
+  id: string;
   titulo: string;
-  enlaces: Enlace[];
-  quiz: Pregunta[];
+  // otros campos si necesitas
 }
 
 interface Curso {
@@ -26,9 +15,8 @@ interface Curso {
   duracion?: string;
   bienvenida?: string;
   dirigidoA: string;
-  modulos?: Modulo[]; // <- lo haces opcional
+  modulos?: Modulo[];
 }
-
 
 interface EditCourseProps {
   curso: Curso;
@@ -44,8 +32,6 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
   const [duracion, setDuracion] = useState(curso.duracion || "");
   const [bienvenida, setBienvenida] = useState(curso.bienvenida || "");
   const [dirigidoA, setDirigidoA] = useState(curso.dirigidoA || "");
-  const [modulos, setModulos] = useState<Modulo[]>(curso.modulos || []);
-
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +43,6 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
     setDuracion(curso.duracion || "");
     setBienvenida(curso.bienvenida || "");
     setDirigidoA(curso.dirigidoA || "");
-    setModulos(curso.modulos || []);
   }, [curso]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +59,6 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
         duracion,
         bienvenida,
         dirigidoA,
-        modulos,
       };
 
       const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${curso.id}`, {
@@ -98,48 +82,103 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 overflow-auto">
-      <div className="bg-white rounded-lg max-w-3xl w-full p-6 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-3xl p-8 relative overflow-y-auto max-h-[90vh]">
         <button
           onClick={onCerrar}
-          className="absolute top-4 right-4 text-gray-700 hover:text-gray-900"
-          aria-label="Cerrar modal"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-xl"
         >
-          ✕
+          ×
         </button>
 
-        <h2 className="text-xl font-bold mb-4">Editar Curso</h2>
+        <h2 className="text-2xl font-semibold text-[#1A3D33] mb-6">Editar Curso</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input className="input" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" required />
-          <textarea className="input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Descripción" required />
-          <input className="input" value={herramientas} onChange={(e) => setHerramientas(e.target.value)} placeholder="Herramientas" />
-          <textarea className="input" value={loQueAprenderas} onChange={(e) => setLoQueAprenderas(e.target.value)} placeholder="Lo que aprenderás" />
-          <input className="input" value={duracion} onChange={(e) => setDuracion(e.target.value)} placeholder="Duración" />
-          <textarea className="input" value={bienvenida} onChange={(e) => setBienvenida(e.target.value)} placeholder="Mensaje de bienvenida" />
-          <input className="input" value={dirigidoA} onChange={(e) => setDirigidoA(e.target.value)} placeholder="Dirigido a" />
-
-          {/* Campos básicos de módulos */}
-          {modulos.map((modulo, i) => (
-            <div key={i} className="border p-3 rounded bg-gray-50">
-              <label className="block font-semibold mb-1">Título del módulo {i + 1}</label>
+          {/* FILA 1: TÍTULO Y DURACIÓN */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Título</label>
               <input
                 type="text"
-                value={modulo.titulo}
-                onChange={(e) => {
-                  const nuevos = [...modulos];
-                  nuevos[i].titulo = e.target.value;
-                  setModulos(nuevos);
-                }}
-                className="w-full border px-3 py-2 rounded mb-2"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+                required
               />
-              {/* No incluimos edición de enlaces ni quiz aquí por simplicidad visual */}
             </div>
-          ))}
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Duración</label>
+              <input
+                type="text"
+                value={duracion}
+                onChange={(e) => setDuracion(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          {/* FILA 2: DESCRIPCIÓN */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Descripción</label>
+            <textarea
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="w-full border px-3 py-2 rounded-md"
+              rows={3}
+              required
+            />
+          </div>
+
+          {/* FILA 3: HERRAMIENTAS Y LO QUE APRENDERÁS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Herramientas necesarias</label>
+              <input
+                type="text"
+                value={herramientas}
+                onChange={(e) => setHerramientas(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Lo que aprenderás</label>
+              <input
+                type="text"
+                value={loQueAprenderas}
+                onChange={(e) => setLoQueAprenderas(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          {/* FILA 4: BIENVENIDA Y DIRIGIDO A */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Texto de bienvenida</label>
+              <input
+                type="text"
+                value={bienvenida}
+                onChange={(e) => setBienvenida(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Dirigido a</label>
+              <input
+                type="text"
+                value={dirigidoA}
+                onChange={(e) => setDirigidoA(e.target.value)}
+                className="w-full border px-3 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          {/* ERROR */}
           {error && <p className="text-red-600">{error}</p>}
 
-          <div className="flex justify-end space-x-4">
+          {/* BOTONES */}
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onCerrar}
@@ -150,7 +189,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+              className="px-4 py-2 bg-[#8BAE52] text-white rounded hover:bg-[#1A3D33] disabled:opacity-50"
               disabled={saving}
             >
               {saving ? "Guardando..." : "Guardar"}
