@@ -23,7 +23,7 @@ const Library = () => {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await axios.get<Book[]>('http://localhost:3000/api/books/libros');
+        const response = await axios.get<Book[]>('https://greenpark-backend-0ua6.onrender.com/api/books/libros');
         setBooks(response.data);
       } catch (err) {
         setError('Error al cargar los libros');
