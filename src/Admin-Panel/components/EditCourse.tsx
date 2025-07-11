@@ -1,49 +1,55 @@
-import React, { useState, useEffect } from "react";
-
-interface Modulo {
-  id: string;
-  titulo: string;
-  // otros campos si necesitas
-}
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 
 interface Curso {
   id: string;
   titulo: string;
   descripcion?: string;
-  herramientas?: string;
-  loQueAprenderas?: string;
-  duracion?: string;
-  bienvenida?: string;
+  estado: string;
   dirigidoA: string;
-  modulos?: Modulo[];
+  cantidadAccesosQuiz: number;
+  // otros campos necesarios, incluido 'modulos' si aplica
 }
 
-interface EditCourseProps {
-  curso: Curso;
-  onCerrar: () => void;
-  onGuardado: () => void;
-}
+const EditCourse: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) => {
-  const [titulo, setTitulo] = useState(curso.titulo || "");
-  const [descripcion, setDescripcion] = useState(curso.descripcion || "");
-  const [herramientas, setHerramientas] = useState(curso.herramientas || "");
-  const [loQueAprenderas, setLoQueAprenderas] = useState(curso.loQueAprenderas || "");
-  const [duracion, setDuracion] = useState(curso.duracion || "");
-  const [bienvenida, setBienvenida] = useState(curso.bienvenida || "");
-  const [dirigidoA, setDirigidoA] = useState(curso.dirigidoA || "");
-  const [saving, setSaving] = useState(false);
+  const [curso, setCurso] = useState<Curso | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // estados para inputs, ejemplo:
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    setTitulo(curso.titulo || "");
-    setDescripcion(curso.descripcion || "");
-    setHerramientas(curso.herramientas || "");
-    setLoQueAprenderas(curso.loQueAprenderas || "");
-    setDuracion(curso.duracion || "");
-    setBienvenida(curso.bienvenida || "");
-    setDirigidoA(curso.dirigidoA || "");
-  }, [curso]);
+    if (!id) {
+      setError("No se recibió ID del curso");
+      setLoading(false);
+      return;
+    }
+
+    const fetchCurso = async () => {
+      try {
+        const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`);
+        if (!res.ok) throw new Error("Error al cargar curso");
+        const data: Curso = await res.json();
+
+        setCurso(data);
+        setTitulo(data.titulo);
+        setDescripcion(data.descripcion || "");
+        setError(null);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurso();
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,14 +60,10 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
       const body = {
         titulo,
         descripcion,
-        herramientas,
-        loQueAprenderas,
-        duracion,
-        bienvenida,
-        dirigidoA,
+        // otros campos que quieras actualizar
       };
 
-      const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${curso.id}`, {
+      const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -72,131 +74,66 @@ const EditCourse: React.FC<EditCourseProps> = ({ curso, onCerrar, onGuardado }) 
         throw new Error(errData.mensaje || "Error al actualizar curso");
       }
 
-      setSaving(false);
       alert("Curso actualizado con éxito");
-      onGuardado();
-    } catch (err: any) {
-      setError(err.message);
+      navigate("/admin/courses"); // volver a lista al guardar
+    } catch (e: any) {
+      setError(e.message);
       setSaving(false);
     }
   };
 
+  if (loading) return <p>Cargando curso...</p>;
+  if (error) return <p className="text-red-600">Error: {error}</p>;
+
+  if (!curso) return <p>No se encontró el curso</p>;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-3xl p-8 relative overflow-y-auto max-h-[90vh]">
-        <button
-          onClick={onCerrar}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-xl"
-        >
-          ×
-        </button>
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow mt-8">
+      <h2 className="text-2xl font-bold mb-4">Editar Curso</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block font-semibold mb-1" htmlFor="titulo">Título</label>
+          <input
+            id="titulo"
+            type="text"
+            className="w-full border px-3 py-2 rounded"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block font-semibold mb-1" htmlFor="descripcion">Descripción</label>
+          <textarea
+            id="descripcion"
+            className="w-full border px-3 py-2 rounded"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows={4}
+          />
+        </div>
+        {/* Agrega más campos según tu modelo */}
 
-        <h2 className="text-2xl font-semibold text-[#1A3D33] mb-6">Editar Curso</h2>
+        {error && <p className="text-red-600">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* FILA 1: TÍTULO Y DURACIÓN */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Título</label>
-              <input
-                type="text"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Duración</label>
-              <input
-                type="text"
-                value={duracion}
-                onChange={(e) => setDuracion(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              />
-            </div>
-          </div>
-
-          {/* FILA 2: DESCRIPCIÓN */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Descripción</label>
-            <textarea
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              className="w-full border px-3 py-2 rounded-md"
-              rows={3}
-              required
-            />
-          </div>
-
-          {/* FILA 3: HERRAMIENTAS Y LO QUE APRENDERÁS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Herramientas necesarias</label>
-              <input
-                type="text"
-                value={herramientas}
-                onChange={(e) => setHerramientas(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Lo que aprenderás</label>
-              <input
-                type="text"
-                value={loQueAprenderas}
-                onChange={(e) => setLoQueAprenderas(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              />
-            </div>
-          </div>
-
-          {/* FILA 4: BIENVENIDA Y DIRIGIDO A */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Texto de bienvenida</label>
-              <input
-                type="text"
-                value={bienvenida}
-                onChange={(e) => setBienvenida(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Dirigido a</label>
-              <input
-                type="text"
-                value={dirigidoA}
-                onChange={(e) => setDirigidoA(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              />
-            </div>
-          </div>
-
-          {/* ERROR */}
-          {error && <p className="text-red-600">{error}</p>}
-
-          {/* BOTONES */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onCerrar}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#8BAE52] text-white rounded hover:bg-[#1A3D33] disabled:opacity-50"
-              disabled={saving}
-            >
-              {saving ? "Guardando..." : "Guardar"}
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className="flex justify-between">
+          <button
+            type="button"
+            onClick={() => navigate("/admin/courses")}
+            className="px-4 py-2 border rounded hover:bg-gray-100"
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            disabled={saving}
+          >
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

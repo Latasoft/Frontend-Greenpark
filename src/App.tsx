@@ -17,6 +17,7 @@ import UserPanel from './User-Panel/UserPanel'
 import ProtectedRoute from './components/ProtectedRoute'
 import TitleHandler from './components/TitleHandler'
 import Library from './Library'
+import EditCourse from './Admin-Panel/components/EditCourse';
 
 
 interface RoleCardProps {
@@ -180,6 +181,7 @@ function App() {
             </main>
           } />
           <Route path="/cursos" element={<Courses />} />
+          <Route path="/admin/courses/edit/:id" element={<EditCourse />} />
           <Route path="/biblioteca" element={<Library />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/login" element={<Login />} />

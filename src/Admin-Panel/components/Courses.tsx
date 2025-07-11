@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EditCourse from './EditCourse'; // importa tu modal
 
 interface Curso {
   id: string;
@@ -11,16 +10,12 @@ interface Curso {
   cantidadAccesosQuiz: number;
 }
 
-
 const Courses: React.FC = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accionandoId, setAccionandoId] = useState<string | null>(null);
-
-  // Estado para manejar curso que se está editando en modal
-  const [cursoEditando, setCursoEditando] = useState<Curso | null>(null);
 
   const fetchCursos = async () => {
     try {
@@ -29,7 +24,6 @@ const Courses: React.FC = () => {
 
       const data = await response.json();
 
-      // Mapear data con la estructura de Curso (coincide con EditCourse)
       const mappedCourses: Curso[] = data.map((curso: any) => ({
         id: curso.id,
         titulo: curso.titulo || 'Sin título',
@@ -87,24 +81,6 @@ const Courses: React.FC = () => {
     }
   };
 
-  // Abrir modal para editar curso
-  const handleEditarCurso = async (cursoBase: Curso) => {
-    try {
-      const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${cursoBase.id}`);
-      if (!res.ok) throw new Error("Error al obtener curso completo");
-      const cursoCompleto = await res.json();
-      setCursoEditando(cursoCompleto); // cursoCompleto debe incluir los módulos
-    } catch (error) {
-      alert("No se pudo cargar el curso completo para editar");
-    }
-  };
-
-  // Cerrar modal y refrescar lista
-  const handleCerrarModal = () => {
-    setCursoEditando(null);
-    fetchCursos();
-  };
-
   if (loading) return <p>Cargando cursos...</p>;
   if (error) return <p>Error: {error}</p>;
 
@@ -157,12 +133,14 @@ const Courses: React.FC = () => {
                     <button className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white">
                       Ver participantes
                     </button>
+
                     <button
-                      onClick={() => handleEditarCurso(course)}
+                      onClick={() => navigate(`/admin/courses/edit/${course.id}`)}
                       className="px-3 py-1 text-sm bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33]"
                     >
                       Editar
                     </button>
+
                     {course.estado !== 'publicado' && (
                       <button
                         onClick={() => handlePublicarCurso(course.id)}
@@ -172,6 +150,7 @@ const Courses: React.FC = () => {
                         {accionandoId === course.id ? 'Publicando...' : 'Publicar'}
                       </button>
                     )}
+
                     <button
                       onClick={() => handleEliminarCurso(course.id)}
                       disabled={accionandoId === course.id}
@@ -186,11 +165,6 @@ const Courses: React.FC = () => {
           </tbody>
         </table>
       </div>
-
-      {/* Modal de edición */}
-      {cursoEditando && (
-        <EditCourse curso={cursoEditando} onCerrar={handleCerrarModal} onGuardado={handleCerrarModal} />
-      )}
     </div>
   );
 };
