@@ -27,7 +27,6 @@ interface EditCourseProps {
   cursoInicial: Curso;
 }
 
-// Función para convertir fecha a ISO string segura
 function safeDateToISOString(dateString?: string | null): string {
   if (!dateString) return '';
   const d = new Date(dateString);
@@ -44,11 +43,8 @@ function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
   const [duracionHoras, setDuracionHoras] = useState<number>(cursoInicial.duracionHoras || 0);
   const [bienvenida, setBienvenida] = useState<string>(cursoInicial.bienvenida || '');
   const [dirigidoA, setDirigidoA] = useState<string>(cursoInicial.dirigidoA || '');
-  
-  // Usamos safeDateToISOString para evitar errores con fechas inválidas
   const [fechaInicio, setFechaInicio] = useState<string>(safeDateToISOString(cursoInicial.fechaInicio));
   const [fechaTermino, setFechaTermino] = useState<string>(safeDateToISOString(cursoInicial.fechaTermino));
-  
   const [archivosModulo, setArchivosModulo] = useState<File[]>([]);
 
   const handleImagenChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -108,67 +104,132 @@ function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Título"
-        value={titulo}
-        onChange={e => setTitulo(e.target.value)}
-        required
-      />
-      <input
-        type="file"
-        accept="image/png, image/jpeg"
-        onChange={handleImagenChange}
-      />
-      <textarea
-        placeholder="Herramientas (JSON)"
-        value={herramientas}
-        onChange={e => setHerramientas(e.target.value)}
-      />
-      <textarea
-        placeholder="Lo que aprenderán (JSON)"
-        value={loAprenderan}
-        onChange={e => setLoAprenderan(e.target.value)}
-      />
-      <textarea
-        placeholder="Módulos (JSON)"
-        value={modulos}
-        onChange={e => setModulos(e.target.value)}
-      />
-      <input
-        type="number"
-        placeholder="Duración horas"
-        value={duracionHoras}
-        onChange={e => setDuracionHoras(Number(e.target.value))}
-      />
-      <textarea
-        placeholder="Bienvenida"
-        value={bienvenida}
-        onChange={e => setBienvenida(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Dirigido a"
-        value={dirigidoA}
-        onChange={e => setDirigidoA(e.target.value)}
-      />
-      <input
-        type="date"
-        value={fechaInicio}
-        onChange={e => setFechaInicio(e.target.value)}
-      />
-      <input
-        type="date"
-        value={fechaTermino}
-        onChange={e => setFechaTermino(e.target.value)}
-      />
-      <input
-        type="file"
-        multiple
-        onChange={handleArchivosModuloChange}
-      />
-      <button type="submit">Actualizar Curso</button>
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white rounded shadow-md space-y-6">
+      <div>
+        <label className="block mb-1 font-semibold">Título</label>
+        <input
+          type="text"
+          placeholder="Título"
+          value={titulo}
+          onChange={e => setTitulo(e.target.value)}
+          required
+          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Imagen (PNG o JPG)</label>
+        <input
+          type="file"
+          accept="image/png, image/jpeg"
+          onChange={handleImagenChange}
+          className="w-full"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Herramientas (JSON)</label>
+        <textarea
+          placeholder="Herramientas (JSON)"
+          value={herramientas}
+          onChange={e => setHerramientas(e.target.value)}
+          rows={3}
+          className="w-full border border-gray-300 rounded px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Lo que aprenderán (JSON)</label>
+        <textarea
+          placeholder="Lo que aprenderán (JSON)"
+          value={loAprenderan}
+          onChange={e => setLoAprenderan(e.target.value)}
+          rows={3}
+          className="w-full border border-gray-300 rounded px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Módulos (JSON)</label>
+        <textarea
+          placeholder="Módulos (JSON)"
+          value={modulos}
+          onChange={e => setModulos(e.target.value)}
+          rows={5}
+          className="w-full border border-gray-300 rounded px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Duración (horas)</label>
+        <input
+          type="number"
+          placeholder="Duración horas"
+          value={duracionHoras}
+          onChange={e => setDuracionHoras(Number(e.target.value))}
+          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Bienvenida</label>
+        <textarea
+          placeholder="Bienvenida"
+          value={bienvenida}
+          onChange={e => setBienvenida(e.target.value)}
+          rows={3}
+          className="w-full border border-gray-300 rounded px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Dirigido a</label>
+        <input
+          type="text"
+          placeholder="Dirigido a"
+          value={dirigidoA}
+          onChange={e => setDirigidoA(e.target.value)}
+          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block mb-1 font-semibold">Fecha Inicio</label>
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={e => setFechaInicio(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+        <div>
+          <label className="block mb-1 font-semibold">Fecha Término</label>
+          <input
+            type="date"
+            value={fechaTermino}
+            onChange={e => setFechaTermino(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block mb-1 font-semibold">Archivos del módulo (opcional, múltiples)</label>
+        <input
+          type="file"
+          multiple
+          onChange={handleArchivosModuloChange}
+          className="w-full"
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="bg-green-600 text-white font-semibold px-6 py-2 rounded hover:bg-green-700 transition-colors"
+      >
+        Actualizar Curso
+      </button>
     </form>
   );
 }
