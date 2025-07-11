@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import CourseCreator from "./CourseCreator";
+//import CourseCreator from "./CourseCreator";
 
 const EditCourse = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [curso, setCurso] = useState(null);
+  const [, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,14 +29,14 @@ const EditCourse = () => {
 
   if (loading) return <p className="text-center py-10">Cargando curso...</p>;
 
-  return (
-    <CourseCreator
-      modo="edicion"
-      cursoInicial={curso}
-      onCancel={() => navigate("/admin")}
-      onSuccess={() => navigate("/admin")}
-    />
-  );
+  //*return (
+    //<CourseCreator
+      //modo="edicion"
+      //cursoInicial={curso}
+      //onCancel={() => navigate("/admin")}
+      //onSuccess={() => navigate("/admin")}
+    ///>
+  //)*//
 };
 
 export default EditCourse;
