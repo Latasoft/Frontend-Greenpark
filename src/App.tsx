@@ -98,7 +98,7 @@ const EditCourseWrapper = () => {
 
   useEffect(() => {
     if (id) {
-      axios.get(`https://tu-api.com/cursos/${id}`)
+      axios.get(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`)
         .then(res => {
           setCursoInicial(res.data);
           setLoading(false);
