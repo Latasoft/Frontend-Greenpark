@@ -77,7 +77,7 @@ function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
       const token = localStorage.getItem('token');
 
       const res = await axios.put(
-        `https://tu-api.com/cursos/${cursoId}`,
+        `https://greenpark-backend-0ua6.onrender.com/cursos/${cursoId}`,
         formData,
         {
           headers: {
