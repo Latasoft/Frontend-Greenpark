@@ -40,7 +40,7 @@ const Login: React.FC = () => {
         navigate('/admin');
       } else if (user.rol === 'docente') {
         navigate('/docente');
-      } else if (user.rol === 'alumno') {
+      } else if (user.rol === 'estudiante') {
         navigate('/user');
       } else if (user.rol === 'apoderado') {
         navigate('/apoderado');
