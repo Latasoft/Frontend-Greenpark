@@ -174,7 +174,7 @@ const Library = () => {
               </svg>
             </button>
             <iframe
-              src={`https://greenpark-backend-0ua6.onrender.com/api/libros/download/${previewBookId}`}
+              src={`https://greenpark-backend-0ua6.onrender.com/api/books/download/${previewBookId}`}
               className="w-full h-full rounded"
               title="Vista previa del libro"
             ></iframe>
