@@ -41,7 +41,7 @@ const Records = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.put(
-        `http://localhost:3000/api/auth/approve/${userId}`,
+        `https://greenpark-backend-0ua6.onrender.com/api/auth/approve/${userId}`,
         {},
         {
           headers: {
@@ -62,7 +62,7 @@ const Records = () => {
   const eliminarUsuario = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/auth/users/${id}`, {
+      await axios.delete(`https://greenpark-backend-0ua6.onrender.com/api/auth/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
