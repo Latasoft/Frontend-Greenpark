@@ -99,7 +99,7 @@ const CrearCurso = () => {
   const baseURL =
     window.location.hostname === "localhost"
       ? "http://localhost:3000"
-      : "https://greenpark-0ua6-backend.onrender.com";
+      : "https://greenpark-backend-0ua6.onrender.com";
 
   // Enviar formulario con axios
   const handleSubmit = async (e: FormEvent) => {
