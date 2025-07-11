@@ -11,6 +11,7 @@ interface Curso {
   cantidadAccesosQuiz: number;
 }
 
+
 const Courses: React.FC = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Curso[]>([]);
@@ -87,8 +88,15 @@ const Courses: React.FC = () => {
   };
 
   // Abrir modal para editar curso
-  const handleEditarCurso = (curso: Curso) => {
-    setCursoEditando(curso);
+  const handleEditarCurso = async (cursoBase: Curso) => {
+    try {
+      const res = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${cursoBase.id}`);
+      if (!res.ok) throw new Error("Error al obtener curso completo");
+      const cursoCompleto = await res.json();
+      setCursoEditando(cursoCompleto); // cursoCompleto debe incluir los módulos
+    } catch (error) {
+      alert("No se pudo cargar el curso completo para editar");
+    }
   };
 
   // Cerrar modal y refrescar lista
