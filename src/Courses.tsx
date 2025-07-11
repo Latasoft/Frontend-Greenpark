@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 const baseURL =
   window.location.hostname === "localhost"
     ? "http://localhost:3000"
-    : "https://greenpark-0ua6-backend.onrender.com";
+    : "https://greenpark-backend-0ua6.onrender.com";
 
 const Courses = () => {
   const [cursos, setCursos] = useState<any[]>([]);
@@ -17,6 +17,7 @@ const Courses = () => {
     const fetchCursos = async () => {
       try {
         const res = await axios.get(`${baseURL}/api/cursos/lista`)
+
         setCursos(res.data);
       } catch (err) {
         setError("Error al cargar cursos");
