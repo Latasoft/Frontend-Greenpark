@@ -6,7 +6,7 @@ import eLearning from './assets/e-learning.webp'
 import girlProfile from './assets/girl-profile.jpg'
 import manProfile from './assets/man-profile.jpg'
 import girlProfile2 from './assets/girl-profile-2.jpg'
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom'
 import Courses from './Courses'
 import Contact from './Contact'
 import Login from './Login'
@@ -19,12 +19,10 @@ import TitleHandler from './components/TitleHandler'
 import Library from './Library'
 import EditCourse from './Admin-Panel/components/EditCourse';
 
-
 interface RoleCardProps {
   title: string;
   onClick: () => void;
 }
-
 
 function App() {
   const testimonials = [
@@ -48,8 +46,7 @@ function App() {
     }
   ];
 
-
-    const RoleCard: React.FC<RoleCardProps> = ({ title, onClick }) => (
+  const RoleCard: React.FC<RoleCardProps> = ({ title, onClick }) => (
     <div className="relative cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105" onClick={onClick}>
       <div className="absolute top-3 left-3 w-full h-full border-2 border-[#8BAE52] rounded-2xl"></div>
       
@@ -97,6 +94,12 @@ function App() {
     );
   };
 
+  // Wrapper para pasar cursoId al componente EditCourse
+  const EditCourseWrapper = () => {
+    const { id } = useParams<{ id: string }>();
+    if (!id) return <div>ID no encontrado</div>;
+    return <EditCourse cursoId={id} />;
+  };
 
   return (
     <Router>
@@ -181,7 +184,8 @@ function App() {
             </main>
           } />
           <Route path="/cursos" element={<Courses />} />
-          <Route path="/admin/courses/edit/:id" element={<EditCourse />} />
+          {/* Ruta con wrapper que pasa cursoId */}
+          <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />
           <Route path="/biblioteca" element={<Library />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/login" element={<Login />} />
