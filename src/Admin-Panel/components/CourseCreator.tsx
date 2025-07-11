@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-
+import axios from "axios";
 
 interface Enlace {
   nombre: string;
@@ -41,12 +41,13 @@ const CrearCurso = () => {
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [quizIndex, setQuizIndex] = useState<number | null>(null);
   const [preguntasTemp, setPreguntasTemp] = useState<Pregunta[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
 
   const [nuevaPregunta, setNuevaPregunta] = useState("");
   const [nuevasOpciones, setNuevasOpciones] = useState<string[]>(["", ""]);
   const [respuestaCorrectaTemp, setRespuestaCorrectaTemp] = useState<number>(0);
-
-
 
   // Manejo archivos e imagen
   const handleImagenChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -94,17 +95,27 @@ const CrearCurso = () => {
     setModulos(nuevosModulos);
   };
 
+  // URL base dinámica según entorno
+  const baseURL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://greenpark-0ua6-backend.onrender.com";
 
-  // Enviar formulario
+  // Enviar formulario con axios
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    // ⬇️ Activa el spinner y desactiva el botón
+    setIsSubmitting(true);
+
     if (!titulo.trim()) {
       alert("El título es obligatorio");
+      setIsSubmitting(false);
       return;
     }
     if (!imagen) {
       alert("La imagen es obligatoria");
+      setIsSubmitting(false);
       return;
     }
 
@@ -124,17 +135,15 @@ const CrearCurso = () => {
       formData.append("archivosModulo", file);
     });
 
-    try {
-      const res = await fetch("https://greenpark-0ua6-backend.onrender.com/api/cursos", {
-        method: "POST",
-        body: formData,
-      });
+    const token = localStorage.getItem("token");
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        alert("Error: " + errorText);
-        return;
-      }
+    try {
+      await axios.post(`${baseURL}/api/cursos`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       alert("Curso creado con éxito");
 
@@ -150,11 +159,20 @@ const CrearCurso = () => {
       setFechaInicio("");
       setFechaTermino("");
       setDirigidoA("");
-    } catch (error) {
-      alert("Error al crear curso");
+    } catch (error: any) {
+      if (error.response) {
+        alert("Error: " + error.response.data);
+      } else {
+        alert("Error al crear curso");
+      }
       console.error(error);
+    } finally {
+      // ⬇️ Desactiva el spinner y vuelve a habilitar el botón
+      setIsSubmitting(false);
     }
   };
+
+
   const finalizarQuiz = () => {
     if (quizIndex === null) return;
 
@@ -465,12 +483,40 @@ const CrearCurso = () => {
 
               {/* Botones */}
               <div className="flex justify-end space-x-4">
-                <button type="button" className="px-6 py-2 border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-gray-50">
-                  Cancelar
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`px-6 py-2 rounded-md text-white transition-colors duration-200 ${
+                    isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-[#8BAE52] hover:bg-[#1A3D33]'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                      Creando...
+                    </div>
+                  ) : (
+                    'Crear Curso'
+                  )}
                 </button>
-                <button type="submit" className="px-6 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33]">
-                  Crear Curso
-                </button>
+
               </div>
             </div>
           </div>

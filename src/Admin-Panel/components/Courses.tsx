@@ -46,7 +46,7 @@ const Courses: React.FC = () => {
   const handlePublicarCurso = async (id: string) => {
     setAccionandoId(id);
     try {
-      const response = await fetch(`http://localhost:3000/api/cursos/${id}/publicar`, {
+      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}/publicar`, {
         method: 'PUT',
       });
       if (!response.ok) throw new Error('Error al publicar el curso');
@@ -65,7 +65,7 @@ const Courses: React.FC = () => {
 
     setAccionandoId(id);
     try {
-      const response = await fetch(`http://localhost:3000/api/cursos/${id}`, {
+      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Error al eliminar el curso');
