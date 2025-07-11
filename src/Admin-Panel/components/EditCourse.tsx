@@ -27,6 +27,14 @@ interface EditCourseProps {
   cursoInicial: Curso;
 }
 
+// Función para convertir fecha a ISO string segura
+function safeDateToISOString(dateString?: string | null): string {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
   const [titulo, setTitulo] = useState<string>(cursoInicial.titulo || '');
   const [imagenFile, setImagenFile] = useState<File | null>(null);
@@ -36,8 +44,11 @@ function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
   const [duracionHoras, setDuracionHoras] = useState<number>(cursoInicial.duracionHoras || 0);
   const [bienvenida, setBienvenida] = useState<string>(cursoInicial.bienvenida || '');
   const [dirigidoA, setDirigidoA] = useState<string>(cursoInicial.dirigidoA || '');
-  const [fechaInicio, setFechaInicio] = useState<string>(cursoInicial.fechaInicio ? new Date(cursoInicial.fechaInicio).toISOString().slice(0, 10) : '');
-  const [fechaTermino, setFechaTermino] = useState<string>(cursoInicial.fechaTermino ? new Date(cursoInicial.fechaTermino).toISOString().slice(0, 10) : '');
+  
+  // Usamos safeDateToISOString para evitar errores con fechas inválidas
+  const [fechaInicio, setFechaInicio] = useState<string>(safeDateToISOString(cursoInicial.fechaInicio));
+  const [fechaTermino, setFechaTermino] = useState<string>(safeDateToISOString(cursoInicial.fechaTermino));
+  
   const [archivosModulo, setArchivosModulo] = useState<File[]>([]);
 
   const handleImagenChange = (e: ChangeEvent<HTMLInputElement>) => {
