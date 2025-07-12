@@ -82,17 +82,23 @@ function EditCourse({ cursoId, cursoInicial }: EditCourseProps) {
       });
 
       const token = localStorage.getItem('token');
+        if (!token) {
+          alert('No estás autenticado. Por favor inicia sesión.');
+          return;
+        }
+
 
       const res = await axios.put(
         `https://greenpark-backend-0ua6.onrender.com/api/cursos/${cursoId}`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}`,
           },
+          withCredentials: true,
         }
       );
+
 
       alert('Curso actualizado correctamente');
       console.log('Curso actualizado:', res.data);
