@@ -29,10 +29,10 @@ const Login: React.FC = () => {
       localStorage.setItem('userId', user.id);
       localStorage.setItem('userName', `${user.nombre} ${user.apellido}`);
       localStorage.setItem('userCorreo', user.correo);
-      localStorage.setItem('userFechaNacimiento', user.fechaNacimiento);
+      localStorage.setItem('userFechaNacimiento', user.fechaNacimiento || '');
       localStorage.setItem('userRole', user.rol);
       localStorage.setItem('isAdmin', user.rol === 'admin' ? 'true' : 'false');
-      localStorage.setItem('imagenPerfil', user.imagenPerfil || '');  // <-- Línea añadida
+      localStorage.setItem('imagenPerfil', user.imagenPerfil || '');
 
       setLoading(false);
 
@@ -51,13 +51,10 @@ const Login: React.FC = () => {
       setLoading(false);
 
       if (err.response) {
-        // El servidor respondió con un error
         setError(err.response.data.message || 'Error en el servidor');
       } else if (err.request) {
-        // Se hizo la petición pero no hubo respuesta
         setError('No se pudo conectar con el servidor. Verifica que esté encendido.');
       } else {
-        // Otro error inesperado
         setError('Error inesperado: ' + err.message);
       }
     }
@@ -145,6 +142,6 @@ const Login: React.FC = () => {
       </div>
     </div>
   );
-}
+};
 
 export default Login;
