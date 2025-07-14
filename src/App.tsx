@@ -25,12 +25,13 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cursos" element={<Courses />} />
+          {/* Ruta dinámica para detalle de curso */}
+          <Route path="/cursos/:cursoId" element={<CourseDetail />} />
           <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />
           <Route path="/biblioteca" element={<Library />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
-          <Route path="/cursos/ia-educacion" element={<CourseDetail />} />
           <Route
             path="/admin/*"
             element={
