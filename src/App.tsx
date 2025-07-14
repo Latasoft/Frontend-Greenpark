@@ -7,15 +7,14 @@ import Courses from './Courses';
 import Contact from './Contact';
 import Login from './Login';
 import Register from './Register';
-import CourseDetail from './CourseDetail';
+import CourseDetail from './CourseDetail'; 
 import AdminPanel from './Admin-Panel/AdminPanel';
 import UserPanel from './User-Panel/UserPanel';
 import ProtectedRoute from './components/ProtectedRoute';
 import TitleHandler from './components/TitleHandler';
 import Library from './Library';
 import EditCourseWrapper from './Admin-Panel/components/EditCourseWrapper';
-
-import HomePage from './HomePage'; // Importa el nuevo componente
+import HomePage from './HomePage';
 
 function App() {
   return (
