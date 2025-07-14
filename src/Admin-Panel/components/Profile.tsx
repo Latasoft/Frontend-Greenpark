@@ -73,7 +73,7 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`http://localhost:3000/api/auth/users/${userId}/profile`, {
+      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/auth/users/${userId}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
