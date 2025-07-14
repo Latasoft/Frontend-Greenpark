@@ -51,12 +51,22 @@ const Footer = () => {
             </div>
             
             <div className="flex space-x-4 mt-4">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:bg-[#8BAE52] hover:text-white transition-colors cursor-pointer">
+              <a
+                href="https://www.facebook.com/c.greenpark/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:bg-[#8BAE52] hover:text-white transition-colors cursor-pointer"
+              >
                 <span className="text-[#1A3D33] hover:text-white text-sm font-bold">f</span>
-              </div>
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:bg-[#8BAE52] hover:text-white transition-colors cursor-pointer">
+              </a>
+              <a
+                href="https://cl.linkedin.com/company/green-park-school"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:bg-[#8BAE52] hover:text-white transition-colors cursor-pointer"
+              >
                 <span className="text-[#1A3D33] hover:text-white text-sm font-bold">in</span>
-              </div>
+              </a>
             </div>
           </div>
         </div>
