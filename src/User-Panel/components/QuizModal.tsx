@@ -17,7 +17,7 @@ interface QuizModalProps {
   onQuizComplete: (passed: boolean, score: number) => void;
 }
 
-const QuizModal: React.FC<QuizModalProps> = ({ isOpen, onClose, quiz, onQuizComplete }) => {
+const QuizModal: React.FC<QuizModalProps> = ({ isOpen, onClose, quiz,  }) => {
   if (!isOpen) return null;
 
   // Implementación del modal aquí
