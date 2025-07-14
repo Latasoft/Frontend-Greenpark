@@ -15,6 +15,8 @@ import TitleHandler from './components/TitleHandler';
 import Library from './Library';
 import EditCourseWrapper from './Admin-Panel/components/EditCourseWrapper';
 import HomePage from './HomePage';
+import ParticipantesCurso from './Admin-Panel/components/ParticipantesCurso';
+
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cursos" element={<Courses />} />
+          <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
+
           {/* Ruta dinámica para detalle de curso */}
           <Route path="/cursos/:cursoId" element={<CourseDetail />} />
           <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />

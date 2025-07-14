@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 interface Pregunta {
   pregunta: string;
@@ -14,7 +14,7 @@ interface QuizModalProps {
   isOpen: boolean;
   onClose: () => void;
   quiz: Quiz;
-  onQuizComplete: (passed: boolean, score: number) => void;
+  onQuizComplete: (passed: boolean, score: number, respuestas: number[]) => void;
 }
 
 const QuizModal: React.FC<QuizModalProps> = ({
@@ -23,91 +23,125 @@ const QuizModal: React.FC<QuizModalProps> = ({
   quiz,
   onQuizComplete,
 }) => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [respuestas, setRespuestas] = useState<number[]>(
+    Array(quiz.preguntas.length).fill(-1)
+  );
+  const [finalizado, setFinalizado] = useState(false);
   const [score, setScore] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [showResults, setShowResults] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentQuestion(0);
-      setScore(0);
-      setAnswers([]);
-      setShowResults(false);
-    }
-  }, [isOpen]);
-
-  const handleAnswer = (selectedOption: number) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = selectedOption;
-    setAnswers(newAnswers);
-
-    if (selectedOption === quiz.preguntas[currentQuestion].respuestaCorrecta) {
-      setScore((prev) => prev + 1);
-    }
-
-    if (currentQuestion < quiz.preguntas.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      setShowResults(true);
-      const finalScore = ((score + 1) / quiz.preguntas.length) * 100;
-      const passed = finalScore >= 51;
-      onQuizComplete(passed, finalScore);
-    }
-  };
-
-  const handleClose = () => {
-    onClose();
-  };
 
   if (!isOpen) return null;
 
+  const seleccionarRespuesta = (pregIndex: number, opcionIndex: number) => {
+    if (finalizado) return;
+    const nuevasRespuestas = [...respuestas];
+    nuevasRespuestas[pregIndex] = opcionIndex;
+    setRespuestas(nuevasRespuestas);
+  };
+
+  const calcularResultado = () => {
+    let correctas = 0;
+    quiz.preguntas.forEach((pregunta, i) => {
+      if (respuestas[i] === pregunta.respuestaCorrecta) correctas++;
+    });
+    const porcentaje = Math.round((correctas / quiz.preguntas.length) * 100);
+    setScore(porcentaje);
+    setFinalizado(true);
+    onQuizComplete(porcentaje >= 70, porcentaje, respuestas);
+  };
+
+  const reiniciarQuiz = () => {
+    setRespuestas(Array(quiz.preguntas.length).fill(-1));
+    setFinalizado(false);
+    setScore(0);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-xl w-full shadow-xl relative">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-full overflow-auto p-6 relative">
         <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl"
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-xl"
+          aria-label="Cerrar modal"
         >
-          ×
+          &times;
         </button>
 
-        {!showResults ? (
-          <>
-            <h2 className="text-2xl font-bold text-[#1A3D33] mb-4">
-              Pregunta {currentQuestion + 1} de {quiz.preguntas.length}
-            </h2>
-            <p className="text-lg text-gray-800 mb-6">
-              {quiz.preguntas[currentQuestion].pregunta}
+        <h2 className="text-2xl font-bold mb-4 text-[#1A3D33]">Evaluación del Curso</h2>
+
+        {quiz.preguntas.map((pregunta, i) => (
+          <div key={i} className="mb-6">
+            <p className="font-semibold text-[#1A3D33] mb-2">
+              {i + 1}. {pregunta.pregunta}
             </p>
-            <div className="space-y-3">
-              {quiz.preguntas[currentQuestion].opciones.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswer(index)}
-                  className="w-full text-left p-3 border border-gray-300 rounded hover:bg-gray-50 transition"
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </>
+            <ul>
+              {pregunta.opciones.map((opcion, j) => {
+                const isSelected = respuestas[i] === j;
+                const isCorrect = finalizado && j === pregunta.respuestaCorrecta;
+                const isWrongSelected = finalizado && isSelected && j !== pregunta.respuestaCorrecta;
+
+                return (
+                  <li
+                    key={j}
+                    className={`cursor-pointer border rounded px-3 py-2 mb-1 transition-colors
+                      ${
+                        isCorrect
+                          ? "bg-green-200 border-green-500"
+                          : isWrongSelected
+                          ? "bg-red-200 border-red-500"
+                          : isSelected
+                          ? "bg-gray-200"
+                          : "hover:bg-gray-100"
+                      }`}
+                    onClick={() => seleccionarRespuesta(i, j)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") seleccionarRespuesta(i, j);
+                    }}
+                  >
+                    <div>{opcion}</div>
+                    {isWrongSelected && (
+                      <div className="text-sm text-red-700 mt-1 font-semibold">
+                        Respuesta incorrecta
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+
+        {!finalizado ? (
+          <button
+            onClick={calcularResultado}
+            disabled={respuestas.includes(-1)}
+            className={`w-full py-2 rounded text-white font-semibold transition-colors ${
+              respuestas.includes(-1)
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#1A3D33] hover:bg-[#8BAE52]"
+            }`}
+          >
+            Finalizar Evaluación
+          </button>
         ) : (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-[#1A3D33] mb-4">
-              Resultados del Quiz
-            </h2>
-            <p className="text-lg mb-3">
-              Has respondido correctamente {score} de {quiz.preguntas.length} preguntas.
-            </p>
-            <p className="text-lg mb-6">
-              {(score / quiz.preguntas.length) * 100 >= 51
-                ? "✅ ¡Aprobaste el quiz!"
-                : "❌ No alcanzaste el mínimo de 51% para aprobar."}
+          <div className="text-center mt-6">
+            <p className="mb-4 text-lg font-semibold text-[#1A3D33]">
+              Puntaje: {score}% {score >= 70 ? "(Aprobado)" : "(No aprobado)"}
             </p>
             <button
-              onClick={handleClose}
-              className="bg-[#1A3D33] text-white px-6 py-2 rounded hover:bg-[#8BAE52] transition"
+              onClick={reiniciarQuiz}
+              className="mr-3 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Reintentar
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-[#1A3D33] text-white rounded hover:bg-[#8BAE52]"
             >
               Cerrar
             </button>

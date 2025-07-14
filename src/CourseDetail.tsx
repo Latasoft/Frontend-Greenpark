@@ -43,16 +43,24 @@ interface Curso {
   bienvenida: string;
 }
 
+interface QuizResult {
+  passed: boolean;
+  score: number;
+  respuestas: number[];
+}
+
 const CourseDetail = () => {
   const { cursoId } = useParams<{ cursoId: string }>();
   const [curso, setCurso] = useState<Curso | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openModulo, setOpenModulo] = useState<number | null>(null);
+
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizModuloIndex, setQuizModuloIndex] = useState<number | null>(null);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [quizScore, setQuizScore] = useState(0);
+
+  // Guardamos resultados por módulo, clave: índice módulo
+  const [quizResults, setQuizResults] = useState<{ [index: number]: QuizResult }>({});
 
   useEffect(() => {
     if (!cursoId) return;
@@ -62,8 +70,7 @@ const CourseDetail = () => {
       .then((res) => {
         setCurso(res.data);
         setError(null);
-        setQuizCompleted(false);
-        setQuizScore(0);
+        setQuizResults({});
       })
       .catch(() => {
         setError("Error al cargar el curso.");
@@ -85,10 +92,19 @@ const CourseDetail = () => {
     setQuizModuloIndex(null);
   };
 
-  const handleQuizComplete = (passed: boolean, score: number) => {
-    setQuizCompleted(passed);
-    setQuizScore(score);
+  // Recibimos resultado desde QuizModal
+  const handleQuizComplete = (
+    passed: boolean,
+    score: number,
+    respuestas: number[]
+  ) => {
+    if (quizModuloIndex === null) return;
+    setQuizResults((prev) => ({
+      ...prev,
+      [quizModuloIndex]: { passed, score, respuestas },
+    }));
     setShowQuiz(false);
+    setQuizModuloIndex(null);
     // Aquí puedes enviar el progreso al backend si deseas
   };
 
@@ -143,7 +159,9 @@ const CourseDetail = () => {
         <h2 className="text-3xl font-semibold text-[#1A3D33] mb-4">Aprenderás</h2>
         <ul className="list-disc list-inside text-gray-800 space-y-1 text-lg">
           {curso.loAprenderan.length > 0 ? (
-            curso.loAprenderan.map((item, i) => <li key={i}>{item}</li>)
+            curso.loAprenderan.map((item) => (
+              <li key={item}>{item}</li>
+            ))
           ) : (
             <li>No especificado</li>
           )}
@@ -159,7 +177,7 @@ const CourseDetail = () => {
           <div className="space-y-6">
             {curso.modulos.map((modulo, index) => (
               <div
-                key={modulo.id}
+                key={modulo.id ?? modulo.nombre + index}
                 className="border rounded-lg shadow-sm hover:shadow-md transition-shadow"
               >
                 <button
@@ -194,8 +212,8 @@ const CourseDetail = () => {
                           Enlaces útiles:
                         </h4>
                         <ul className="list-disc list-inside text-blue-700 space-y-1">
-                          {modulo.enlaces.map((enlace, i) => (
-                            <li key={i}>
+                          {modulo.enlaces.map((enlace) => (
+                            <li key={enlace.url}>
                               <a
                                 href={enlace.url}
                                 target="_blank"
@@ -211,14 +229,49 @@ const CourseDetail = () => {
                     )}
 
                     {modulo.quiz && modulo.quiz.preguntas.length > 0 && (
-                      <button
-                        className="mt-4 px-6 py-3 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition-colors"
-                        onClick={() => handleAbrirQuiz(index)}
-                      >
-                        {quizCompleted && quizModuloIndex === index
-                          ? `Evaluación completada - Puntaje: ${quizScore}%`
-                          : "Completar Evaluación"}
-                      </button>
+                      <>
+                        <button
+                          className="mt-4 px-6 py-3 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition-colors"
+                          onClick={() => handleAbrirQuiz(index)}
+                        >
+                          {quizResults[index]
+                            ? `Evaluación completada - Puntaje: ${quizResults[index].score}%`
+                            : "Completar Evaluación"}
+                        </button>
+
+                        {/* Mostrar resultados */}
+                        {quizResults[index] && (
+                          <div className="mt-4 p-4 border rounded bg-green-50 text-[#1A3D33]">
+                            <p className="font-semibold mb-2">
+                              Puntaje: {quizResults[index].score}%{" "}
+                              {quizResults[index].passed ? "(Aprobado)" : "(No aprobado)"}
+                            </p>
+                            <div className="space-y-3 max-h-64 overflow-auto">
+                              {modulo.quiz!.preguntas.map((pregunta, i) => {
+                                const respuestaUsuario = quizResults[index].respuestas[i];
+                                const correcta = pregunta.respuestaCorrecta;
+                                const estaCorrecta = respuestaUsuario === correcta;
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`p-2 rounded ${
+                                      estaCorrecta ? "bg-green-100" : "bg-red-100"
+                                    }`}
+                                  >
+                                    <p><strong>Pregunta:</strong> {pregunta.pregunta}</p>
+                                    <p><strong>Tu respuesta:</strong> {respuestaUsuario >= 0 ? pregunta.opciones[respuestaUsuario] : "Sin responder"}</p>
+                                    {!estaCorrecta && (
+                                      <p>
+                                        <strong>Respuesta correcta:</strong> {pregunta.opciones[correcta]}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -229,16 +282,14 @@ const CourseDetail = () => {
       </section>
 
       {/* Modal Quiz */}
-      {showQuiz &&
-        quizModuloIndex !== null &&
-        curso.modulos[quizModuloIndex].quiz && (
-          <QuizModal
-            isOpen={showQuiz}
-            onClose={handleCerrarQuiz}
-            quiz={curso.modulos[quizModuloIndex].quiz!}
-            onQuizComplete={handleQuizComplete}
-          />
-        )}
+      {showQuiz && quizModuloIndex !== null && curso.modulos[quizModuloIndex].quiz && (
+        <QuizModal
+          isOpen={showQuiz}
+          onClose={handleCerrarQuiz}
+          quiz={curso.modulos[quizModuloIndex].quiz!}
+          onQuizComplete={handleQuizComplete}
+        />
+      )}
     </div>
   );
 };

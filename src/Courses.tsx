@@ -103,13 +103,36 @@ const Courses = () => {
                   </div>
                   <button
                     className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      navigate(`/cursos/${curso.id}`);
+                      try {
+                        const token = localStorage.getItem("token");
+                        console.log("Token para registrar participante:", token);
+
+                        const response = await axios.post(
+                          `${baseURL}/api/cursos/${curso.id}/registrarParticipante`,
+                          {},
+                          {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          }
+                        );
+
+                        console.log("Respuesta backend registrar participante:", response.data);
+
+                        alert("¡Registro exitoso!");
+                        navigate(`/cursos/${curso.id}`);
+                      } catch (error) {
+                        console.error("Error al registrar participante", error);
+                        alert("No se pudo registrar la participación. Intenta de nuevo.");
+                      }
                     }}
+
                   >
                     Comenzar Curso
                   </button>
+
                 </div>
               </div>
             ))}

@@ -8,7 +8,13 @@ interface Curso {
   estado: string;
   dirigidoA: string;
   cantidadAccesosQuiz: number;
+  cantidadParticipantes?: number; // agregado para mostrar participantes
 }
+
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -17,23 +23,42 @@ const Courses: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [accionandoId, setAccionandoId] = useState<string | null>(null);
 
-  const fetchCursos = async () => {
+  // Función para obtener cantidad de participantes por curso
+  const fetchCantidadParticipantes = async (cursoId: string): Promise<number> => {
     try {
-      const response = await fetch('https://greenpark-backend-0ua6.onrender.com/api/cursos/lista');
-      if (!response.ok) throw new Error('Error al cargar los cursos');
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${baseURL}/api/cursos/${cursoId}/cantidadParticipantes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error('Error al obtener cantidad de participantes');
+      const data = await res.json();
+      return data.cantidadParticipantes || 0;
+    } catch {
+      return 0;
+    }
+  };
 
-      const data = await response.json();
+  // Obtener cursos y luego agregar cantidad de participantes a cada uno
+  const fetchCursos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${baseURL}/api/cursos/lista`);
+      if (!res.ok) throw new Error('Error al cargar los cursos');
+      const data = await res.json();
 
-      const mappedCourses: Curso[] = data.map((curso: any) => ({
-        id: curso.id,
-        titulo: curso.titulo || 'Sin título',
-        descripcion: curso.descripcion || '',
-        estado: curso.estado || 'Desconocido',
-        dirigidoA: curso.dirigidoA || 'General',
-        cantidadAccesosQuiz: curso.cantidadAccesosQuiz || 0,
-      }));
+      const cursosConParticipantes = await Promise.all(
+        data.map(async (curso: any) => {
+          const cantidadParticipantes = await fetchCantidadParticipantes(curso.id);
+          return {
+            ...curso,
+            cantidadParticipantes,
+          };
+        })
+      );
 
-      setCourses(mappedCourses);
+      setCourses(cursosConParticipantes);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -49,11 +74,10 @@ const Courses: React.FC = () => {
   const handlePublicarCurso = async (id: string) => {
     setAccionandoId(id);
     try {
-      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}/publicar`, {
+      const response = await fetch(`${baseURL}/api/cursos/${id}/publicar`, {
         method: 'PUT',
       });
       if (!response.ok) throw new Error('Error al publicar el curso');
-
       await fetchCursos();
     } catch {
       alert('Error al publicar curso');
@@ -63,16 +87,14 @@ const Courses: React.FC = () => {
   };
 
   const handleEliminarCurso = async (id: string) => {
-    const confirmDelete = window.confirm('¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.');
-    if (!confirmDelete) return;
+    if (!window.confirm('¿Estás seguro de eliminar este curso? Esta acción no se puede deshacer.')) return;
 
     setAccionandoId(id);
     try {
-      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`, {
+      const response = await fetch(`${baseURL}/api/cursos/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Error al eliminar el curso');
-
       await fetchCursos();
     } catch {
       alert('Error al eliminar curso');
@@ -93,8 +115,18 @@ const Courses: React.FC = () => {
             onClick={() => navigate('/admin/courses/new')}
             className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-colors flex items-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Nuevo Curso
           </button>
@@ -105,11 +137,21 @@ const Courses: React.FC = () => {
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre del curso</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo de acceso</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participantes</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Nombre del curso
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estado
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tipo de acceso
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Participantes
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acciones
+              </th>
             </tr>
           </thead>
 
@@ -120,17 +162,24 @@ const Courses: React.FC = () => {
                 <td className="px-6 py-4">
                   <span
                     className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      course.estado === 'publicado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      course.estado === 'publicado'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
                     {course.estado}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">{course.dirigidoA}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{course.cantidadAccesosQuiz} alumnos</td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {course.cantidadParticipantes ?? 0} alumnos
+                </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap gap-2">
-                    <button className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white">
+                    <button
+                      onClick={() => navigate(`/admin/courses/participantes/${course.id}`)}
+                      className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white"
+                    >
                       Ver participantes
                     </button>
 

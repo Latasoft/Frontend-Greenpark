@@ -66,6 +66,9 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
   const [quizIndex, setQuizIndex] = useState<number | null>(null);
   const [preguntasTemp, setPreguntasTemp] = useState<Pregunta[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingQuiz, ] = useState(false);
+  const [mensajeQuizGuardado, setMensajeQuizGuardado] = useState("");
+
 
   // Estados para agregar preguntas en el quiz modal
   const [nuevaPregunta, setNuevaPregunta] = useState("");
@@ -78,6 +81,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
       setImagen(e.target.files[0]);
     }
   };
+
 
   // Manejo archivos de módulo (opcional)
   const handleArchivosModuloChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -123,14 +127,21 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
   // Quiz Modal: finalizar edición del quiz
   const finalizarQuiz = () => {
     if (quizIndex === null) return;
+
     const nuevosModulos = [...modulos];
     nuevosModulos[quizIndex].quiz = { preguntas: preguntasTemp };
-    setModulos(nuevosModulos);
-
+    setModulos(nuevosModulos); // actualizar en frontend
     setPreguntasTemp([]);
     setQuizIndex(null);
     setIsQuizModalOpen(false);
+    setMensajeQuizGuardado("Quiz actualizado localmente");
+
+    setTimeout(() => setMensajeQuizGuardado(""), 3000);
   };
+
+
+
+
 
   // Eliminar pregunta temporal del quiz
   const eliminarPreguntaTemp = (index: number) => {
@@ -140,6 +151,16 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
   // Enviar formulario de actualización
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!fechaInicio || !fechaTermino) {
+      alert("Por favor, ingresa las fechas de inicio y término del curso.");
+      return; // No continuar si falta fecha
+    }
+
+    if (isQuizModalOpen && quizIndex !== null) {
+      await finalizarQuiz();
+    }
+
     setIsSubmitting(true);
 
     if (!titulo.trim()) {
@@ -151,14 +172,15 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
     try {
       const formData = new FormData();
       formData.append("titulo", titulo);
-      if (imagen) formData.append("imagen", imagen); // solo si cambió imagen
+      if (imagen) formData.append("imagen", imagen);
       formData.append("herramientas", JSON.stringify(herramientas));
       formData.append("loAprenderan", JSON.stringify(loAprenderan));
       formData.append("duracionHoras", duracionHoras.toString());
       formData.append("bienvenida", bienvenida);
-      formData.append("modulos", JSON.stringify(modulos));
-      formData.append("fechaInicio", fechaInicio || "");
-      formData.append("fechaTermino", fechaTermino || "");
+      formData.append("modulos", JSON.stringify(modulos)); // aquí modulos ya tiene quiz actualizado
+      if (fechaInicio) formData.append("fechaInicio", fechaInicio);
+      if (fechaTermino) formData.append("fechaTermino", fechaTermino);
+
       formData.append("dirigidoA", dirigidoA);
 
       archivosModulo.forEach((file) => {
@@ -187,7 +209,14 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
     }
   };
 
+
   return (
+  <>
+    {mensajeQuizGuardado && (
+      <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
+        {mensajeQuizGuardado}
+      </div>
+    )}
     <form onSubmit={handleSubmit}>
       <div className="h-[calc(100vh-8rem)] overflow-y-auto">
         <div className="bg-white rounded-lg shadow">
@@ -514,10 +543,22 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
           onClick={() => setIsQuizModalOpen(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 w-[600px] max-w-full"
+            className="bg-white rounded-lg p-6 w-[600px] max-w-full relative"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Spinner */}
+            {isSavingQuiz && (
+              <div className="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10">
+                <div className="loader border-t-4 border-[#8BAE52] border-solid rounded-full w-12 h-12 animate-spin" />
+              </div>
+            )}
+
             <h3 className="text-lg font-semibold mb-4">Editar Quiz - Módulo {quizIndex + 1}</h3>
+
+            {/* Mensaje de guardado */}
+            {mensajeQuizGuardado && (
+              <div className="mb-4 text-green-600 font-medium">{mensajeQuizGuardado}</div>
+            )}
 
             {/* Listado de preguntas */}
             <div className="max-h-72 overflow-y-auto mb-4">
@@ -552,7 +593,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
               ))}
             </div>
 
-            {/* Form para agregar nueva pregunta */}
+            {/* Formulario nueva pregunta */}
             <div className="space-y-2">
               <input
                 type="text"
@@ -584,9 +625,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
               </button>
 
               <div className="mt-2">
-                <label className="block font-semibold mb-1">
-                  Respuesta correcta
-                </label>
+                <label className="block font-semibold mb-1">Respuesta correcta</label>
                 <select
                   value={respuestaCorrectaTemp}
                   onChange={(e) => setRespuestaCorrectaTemp(Number(e.target.value))}
@@ -611,7 +650,6 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
                     alert("Todas las opciones deben estar completas");
                     return;
                   }
-                  // Agregar pregunta nueva al array temporal
                   setPreguntasTemp([
                     ...preguntasTemp,
                     {
@@ -620,7 +658,6 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
                       respuestaCorrecta: respuestaCorrectaTemp,
                     },
                   ]);
-                  // Limpiar inputs
                   setNuevaPregunta("");
                   setNuevasOpciones(["", ""]);
                   setRespuestaCorrectaTemp(0);
@@ -631,6 +668,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
               </button>
             </div>
 
+            {/* Acciones */}
             <div className="mt-6 flex justify-end gap-4">
               <button
                 type="button"
@@ -642,6 +680,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
               <button
                 type="button"
                 onClick={finalizarQuiz}
+                disabled={isSavingQuiz}
                 className="bg-[#8BAE52] hover:bg-[#7a9943] text-white font-semibold px-4 py-2 rounded-md"
               >
                 Guardar Quiz
@@ -650,7 +689,9 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
           </div>
         </div>
       )}
+
     </form>
+  </>
   );
 };
 
