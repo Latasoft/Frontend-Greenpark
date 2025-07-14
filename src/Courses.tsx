@@ -110,7 +110,7 @@ const Courses = () => {
                         console.log("Token para registrar participante:", token);
 
                         const response = await axios.post(
-                          `${baseURL}/api/cursos/${curso.id}/registrarParticipante`,
+                          `https://greenpark-backend-0ua6.onrender.com/api/cursos/${curso.id}/registrarParticipante`,
                           {},
                           {
                             headers: {
