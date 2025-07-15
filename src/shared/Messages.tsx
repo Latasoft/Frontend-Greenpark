@@ -1,5 +1,19 @@
+// src/shared/Messages.tsx
+
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  Layout,
+  List,
+  Typography,
+  Spin,
+  Empty,
+  Descriptions,
+} from 'antd';
+import { MailOutlined } from '@ant-design/icons';
+
+const { Sider, Content } = Layout;
+const { Title, Text } = Typography;
 
 interface Message {
   id: string;
@@ -14,12 +28,13 @@ interface Message {
 
 interface MessagesProps {
   userEmail: string;
-  userRole: string;
+  userRole?: string;
 }
 
 const Messages: React.FC<MessagesProps> = ({ userEmail }) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -30,60 +45,125 @@ const Messages: React.FC<MessagesProps> = ({ userEmail }) => {
         setMessages(res.data);
       } catch (error) {
         console.error('Error al obtener mensajes:', error);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchMessages();
   }, [userEmail]);
 
   return (
-    <div className="flex h-[80vh] bg-white rounded-lg shadow-lg overflow-hidden">
+    <Layout
+      className="rounded-lg shadow border overflow-hidden"
+      style={{ height: 'calc(100vh - 120px)', background: '#fff' }}
+    >
       {/* Bandeja lateral */}
-      <div className="w-1/3 border-r overflow-y-auto">
-        <div className="p-4 border-b bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-800">📥 Bandeja de entrada</h3>
+      <Sider
+        width={320}
+        style={{
+          background: '#fff',
+          borderRight: '1px solid #f0f0f0',
+          overflowY: 'auto',
+          padding: '16px 0',
+        }}
+      >
+        <div
+          style={{
+            padding: '0 24px',
+            marginBottom: 12,
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            background: '#fff',
+          }}
+        >
+          <Title level={4} style={{ margin: 0, color: '#1A3D33' }}>
+            <MailOutlined style={{ marginRight: 8 }} />
+            Bandeja de entrada
+          </Title>
         </div>
-        {messages.length === 0 ? (
-          <div className="p-4 text-gray-500 text-sm">No hay mensajes recibidos.</div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              onClick={() => setSelectedMessage(msg)}
-              className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                selectedMessage?.id === msg.id ? 'bg-gray-100' : ''
-              }`}
-            >
-              <div className="font-medium text-sm text-gray-900">
-                {msg.fromName} <span className="ml-1 text-xs text-[#1A3D33]">({msg.fromRole})</span>
-              </div>
-              <div className="text-sm text-gray-600 font-medium truncate">{msg.subject}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(msg.date).toLocaleString()}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
-      {/* Panel de mensaje seleccionado */}
-      <div className="flex-1 p-6 overflow-y-auto">
+        {loading ? (
+          <div className="flex justify-center items-center h-full p-4">
+            <Spin />
+          </div>
+        ) : messages.length === 0 ? (
+          <Empty description="No hay mensajes" className="mt-8" />
+        ) : (
+          <List
+            dataSource={messages}
+            itemLayout="vertical"
+            style={{ padding: '0 8px' }}
+            renderItem={(msg) => (
+              <List.Item
+                onClick={() => setSelectedMessage(msg)}
+                style={{
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  marginBottom: 8,
+                  borderRadius: 8,
+                  backgroundColor:
+                    selectedMessage?.id === msg.id ? '#f0f5f1' : '#fafafa',
+                  border:
+                    selectedMessage?.id === msg.id
+                      ? '1px solid #8BAE52'
+                      : '1px solid #f0f0f0',
+                  transition: 'all 0.2s ease',
+                }}
+                className="hover:shadow-sm hover:bg-[#f5f9f6]"
+              >
+                <div className="font-semibold text-[#1A3D33]">
+                  {msg.fromName}{' '}
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    ({msg.fromRole})
+                  </Text>
+                </div>
+                <div className="text-sm font-medium text-gray-700 truncate">
+                  {msg.subject}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {new Date(msg.date).toLocaleString()}
+                </div>
+              </List.Item>
+            )}
+          />
+        )}
+      </Sider>
+
+      {/* Panel del mensaje */}
+      <Content style={{ padding: '24px', overflowY: 'auto' }}>
         {selectedMessage ? (
           <>
-            <div className="mb-6 border-b pb-4">
-              <h2 className="text-2xl font-bold text-gray-900">{selectedMessage.subject}</h2>
-              <div className="text-sm mt-3 text-gray-700">
-                <p>
-                  <strong>De:</strong> {selectedMessage.fromName} ({selectedMessage.from})
-                </p>
-                <p>
-                  <strong>Rol:</strong> {selectedMessage.fromRole}
-                </p>
-                <p>
-                  <strong>Recibido:</strong> {new Date(selectedMessage.date).toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="text-gray-800 text-base whitespace-pre-wrap leading-relaxed">
+            <Title level={3} style={{ color: '#1A3D33' }}>
+              {selectedMessage.subject}
+            </Title>
+            <Descriptions
+              bordered
+              size="small"
+              column={1}
+              style={{ marginBottom: 24 }}
+              labelStyle={{ fontWeight: 600 }}
+            >
+              <Descriptions.Item label="De">
+                {selectedMessage.fromName} ({selectedMessage.from})
+              </Descriptions.Item>
+              <Descriptions.Item label="Rol">
+                {selectedMessage.fromRole}
+              </Descriptions.Item>
+              <Descriptions.Item label="Recibido">
+                {new Date(selectedMessage.date).toLocaleString()}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                fontSize: 16,
+                color: '#333',
+                lineHeight: 1.6,
+              }}
+            >
               {selectedMessage.content}
             </div>
           </>
@@ -92,8 +172,8 @@ const Messages: React.FC<MessagesProps> = ({ userEmail }) => {
             Selecciona un mensaje para ver su contenido.
           </div>
         )}
-      </div>
-    </div>
+      </Content>
+    </Layout>
   );
 };
 

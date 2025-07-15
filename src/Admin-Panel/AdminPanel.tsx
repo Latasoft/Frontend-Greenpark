@@ -55,18 +55,17 @@ const AdminPanel = () => {
     }
   };
 
-
   return (
     <div className="relative flex h-screen bg-gray-100">
       <PageTitle title="Panel de Administrador" />
 
+      {/* Overlay para sidebar en móvil */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${
-          isSidebarOpen ? 'block' : 'hidden'
-        }`}
+        className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${isSidebarOpen ? 'block' : 'hidden'}`}
         onClick={() => setSidebarOpen(false)}
       />
 
+      {/* Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-30
         w-64 bg-[#1A3D33] text-white 
@@ -84,8 +83,8 @@ const AdminPanel = () => {
                 key={item.id}
                 onClick={() => handleMenuClick(item.id)}
                 className={`w-full flex items-center px-6 py-3 text-left ${
-                  currentSection === item.id 
-                    ? 'bg-[#8BAE52] text-white' 
+                  currentSection === item.id
+                    ? 'bg-[#8BAE52] text-white'
                     : 'hover:bg-[#8BAE52]/10'
                 }`}
               >
@@ -98,7 +97,7 @@ const AdminPanel = () => {
               <button
                 key={item.id}
                 onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center px-6 py-3 text-left hover:bg-[#8BAE52]/10`}
+                className="w-full flex items-center px-6 py-3 text-left hover:bg-[#8BAE52]/10"
               >
                 <span>{item.name}</span>
               </button>
@@ -107,6 +106,7 @@ const AdminPanel = () => {
         </nav>
       </div>
 
+      {/* Contenido principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-sm z-10">
           <div className="px-6 py-4 flex items-center">
@@ -124,7 +124,8 @@ const AdminPanel = () => {
           </div>
         </header>
 
-        <main className="p-6">
+        {/* Main con scroll y altura flexible */}
+        <main className="p-6 flex-1 overflow-auto">
           <Routes>
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/new" element={<CourseCreator />} />
