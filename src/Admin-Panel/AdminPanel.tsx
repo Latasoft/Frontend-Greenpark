@@ -4,7 +4,7 @@ import Profile from './components/Profile';
 import Courses from './components/Courses';
 import Records from './components/Records';
 import CourseCreator from './components/CourseCreator';
-import Messages from './components/Messages';
+import Messages from './components/AdminMessagesPage';
 import Library from './components/Library';
 import PageTitle from '../components/PageTitle';
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import Profile from '../Admin-Panel/components/Profile';
 import UserCourses from './components/UserCourses';
-import Messages from './components/Messages';
+import Messages from './components/UserMessagesPage';
 import PageTitle from '../components/PageTitle';
 
 const UserPanel = () => {
