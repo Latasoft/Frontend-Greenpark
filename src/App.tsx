@@ -27,6 +27,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cursos" element={<Courses />} />
+          <Route path="/cursos/:tipo?" element={<Courses />} />
           <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
 
           {/* Ruta dinámica para detalle de curso */}

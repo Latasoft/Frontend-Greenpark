@@ -45,7 +45,34 @@ const Header = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <Link to="/" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Inicio</Link>
-              <Link to="/cursos" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Cursos</Link>
+            <div className="relative group">
+              <Link
+                to="/cursos"
+                className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors block"
+              >
+                Cursos
+              </Link>
+              <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50">
+                <Link
+                  to="/cursos/docentes"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Docentes
+                </Link>
+                <Link
+                  to="/cursos/estudiantes"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Estudiantes
+                </Link>
+                <Link
+                  to="/cursos/comunidad"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Comunidad
+                </Link>
+              </div>
+            </div>
               <Link to="/biblioteca" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Biblioteca</Link>
               <Link to="/contacto" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Contacto</Link>
             </div>
