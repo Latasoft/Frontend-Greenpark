@@ -23,7 +23,7 @@ const Header = () => {
     if (userRole === 'admin') navigate('/admin/profile');
     else if (userRole === 'alumno') navigate('/user/profile');
     else if (userRole === 'docente') navigate('/docente');
-    else if (userRole === 'apoderado') navigate('/apoderado');
+    else if (userRole === 'apoderado') navigate('/comunidad');
     else navigate('/');
   };
 
@@ -54,13 +54,13 @@ const Header = () => {
               </Link>
               <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50">
                 <Link
-                  to="/cursos/docentes"
+                  to="/cursos/docente"
                   className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
                 >
                   Para Docentes
                 </Link>
                 <Link
-                  to="/cursos/estudiantes"
+                  to="/cursos/estudiante"
                   className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
                 >
                   Para Estudiantes
