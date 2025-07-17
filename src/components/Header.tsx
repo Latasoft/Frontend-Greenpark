@@ -20,12 +20,19 @@ const Header = () => {
   const initials = getInitials(userName) || 'US';
 
   const handleRedirect = () => {
-    if (userRole === 'admin') navigate('/admin/profile');
-    else if (userRole === 'alumno') navigate('/user/profile');
-    else if (userRole === 'docente') navigate('/docente');
-    else if (userRole === 'apoderado') navigate('/apoderado');
-    else navigate('/');
+    if (userRole === 'admin') {
+      navigate('/admin');
+    } else if (
+      userRole === 'estudiante' ||
+      userRole === 'docente' ||
+      userRole === 'apoderado'
+    ) {
+      navigate('/user');
+    } else {
+      navigate('/');
+    }
   };
+
 
   const handleLogout = () => {
     localStorage.clear();

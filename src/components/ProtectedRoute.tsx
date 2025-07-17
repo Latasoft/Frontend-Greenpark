@@ -2,18 +2,24 @@ import { Navigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: 'admin' | 'user';
+  allowedRole?: string;
+  allowedRoles?: string[];
 }
 
-const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, allowedRole, allowedRoles }: ProtectedRouteProps) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  localStorage.setItem('isAuthenticated', 'true');
-localStorage.setItem('isAdmin', 'true');
+  const userRole = localStorage.getItem('userRole'); // ej: 'admin', 'estudiante', 'docente', 'apoderado'
 
-  
-  if (!isAuthenticated || (allowedRole === 'admin' && !isAdmin)) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (allowedRole && userRole !== allowedRole) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

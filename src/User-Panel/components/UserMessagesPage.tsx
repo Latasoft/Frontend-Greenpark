@@ -1,11 +1,8 @@
-// src/user-panel/pages/UserMessagesPage.tsx
-
-import React from 'react';
 import Messages from '../../shared/Messages';
 import EnviarMensaje from '../../shared/EnviarMensaje';
 import { useAuth } from '../../hooks/useAuth';
 
-const UserMessagesPage: React.FC = () => {
+const UserMessagesPage = () => {
   const { user } = useAuth();
 
   if (!user) return <div>Cargando usuario...</div>;

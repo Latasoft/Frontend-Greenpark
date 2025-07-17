@@ -7,7 +7,7 @@ import Courses from './Courses';
 import Contact from './Contact';
 import Login from './Login';
 import Register from './Register';
-import CourseDetail from './CourseDetail'; 
+import CourseDetail from './CourseDetail';
 import AdminPanel from './Admin-Panel/AdminPanel';
 import UserPanel from './User-Panel/UserPanel';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -16,7 +16,6 @@ import Library from './Library';
 import EditCourseWrapper from './Admin-Panel/components/EditCourseWrapper';
 import HomePage from './HomePage';
 import ParticipantesCurso from './Admin-Panel/components/ParticipantesCurso';
-
 
 function App() {
   return (
@@ -27,15 +26,15 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cursos" element={<Courses />} />
-          <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
-
-          {/* Ruta dinámica para detalle de curso */}
           <Route path="/cursos/:cursoId" element={<CourseDetail />} />
-          <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />
           <Route path="/biblioteca" element={<Library />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
+          <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />
+
+          {/* Panel admin solo para rol admin */}
           <Route
             path="/admin/*"
             element={
@@ -44,10 +43,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Panel user para estudiante, docente, apoderado */}
           <Route
             path="/user/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['estudiante', 'docente', 'apoderado']}>
                 <UserPanel />
               </ProtectedRoute>
             }
