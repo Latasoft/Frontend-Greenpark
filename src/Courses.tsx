@@ -139,15 +139,14 @@ const Courses = () => {
                         try {
                           const token = localStorage.getItem("token");
 
-                          const response = await axios.post(
+                          await axios.post(
                             `${baseURL}/api/cursos/${curso.id}/registrarParticipante`,
                             {},
                             {
-                              headers: {
-                                Authorization: `Bearer ${token}`,
-                              },
+                              headers: { Authorization: `Bearer ${token}` },
                             }
                           );
+
 
                           alert("¡Registro exitoso!");
                           navigate(`/cursos/${curso.id}`);
