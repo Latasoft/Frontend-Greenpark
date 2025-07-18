@@ -469,7 +469,7 @@ const CrearCurso = () => {
                       <option value="">Seleccione una opción</option>
                       <option value="docente">Docente</option>
                       <option value="estudiante">Estudiante</option>
-                      <option value="apoderado">Apoderado</option>
+                      <option value="apoderado">Comunidad</option>
                     </select>
                   </div>
 
