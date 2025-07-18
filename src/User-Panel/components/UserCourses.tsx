@@ -28,10 +28,17 @@ const UserCourses = () => {
         setLoading(true);
         setError(null);
 
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No se encontró token de autenticación.");
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch(`${baseURL}/api/auth/${usuarioId}/cursos-inscritos`, {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -40,7 +47,24 @@ const UserCourses = () => {
         }
 
         const data: Course[] = await res.json();
-        setCourses(data);
+
+        // Depuración: muestra cada progreso recibido
+        data.forEach(course => {
+          if (typeof course.progreso !== "number" || course.progreso < 0 || course.progreso > 100) {
+            console.warn(`Progreso inválido en curso ${course.nombre} (${course.id}):`, course.progreso);
+          }
+        });
+
+        // Normalizar progreso para que siempre esté entre 0 y 100
+        const cursosNormalizados = data.map(course => ({
+          ...course,
+          progreso:
+            typeof course.progreso === "number" && course.progreso >= 0 && course.progreso <= 100
+              ? course.progreso
+              : 0,
+        }));
+
+        setCourses(cursosNormalizados);
       } catch (err: any) {
         setError(err.message || "Error desconocido");
       } finally {
@@ -52,7 +76,7 @@ const UserCourses = () => {
   }, [usuarioId]);
 
   if (loading) return <p>Cargando cursos...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (error) return <p className="text-red-600">Error: {error}</p>;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

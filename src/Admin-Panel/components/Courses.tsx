@@ -12,7 +12,7 @@ interface Curso {
 }
 
 const baseURL =
-  window.location.hostname === 'localhost'
+  window.location.hostname === 'localhost:3000'
     ? 'http://localhost:3000'
     : 'https://greenpark-backend-0ua6.onrender.com';
 

@@ -93,19 +93,95 @@ const CourseDetail = () => {
   };
 
   // Recibimos resultado desde QuizModal
-  const handleQuizComplete = (
+  const handleQuizComplete = async (
     passed: boolean,
     score: number,
     respuestas: number[]
   ) => {
-    if (quizModuloIndex === null) return;
-    setQuizResults((prev) => ({
-      ...prev,
+    if (quizModuloIndex === null || !cursoId) return;
+
+    const usuarioId = localStorage.getItem("userId");
+    if (!usuarioId) {
+      console.error("Usuario no autenticado");
+      return;
+    }
+
+    // Actualizamos resultados localmente
+    const nuevosResultados = {
+      ...quizResults,
       [quizModuloIndex]: { passed, score, respuestas },
-    }));
+    };
+    setQuizResults(nuevosResultados);
     setShowQuiz(false);
     setQuizModuloIndex(null);
-    // Aquí puedes enviar el progreso al backend si deseas
+
+    // Calcular progreso como % de módulos con quiz aprobados
+    const modulosConQuiz = curso?.modulos.filter((m) => m.quiz)?.length || 0;
+    const modulosAprobados = Object.values(nuevosResultados).filter((r) => r.passed).length;
+    const progresoCalculado = modulosConQuiz > 0
+      ? Math.round((modulosAprobados / modulosConQuiz) * 100)
+      : 0;
+
+    // Enviar progreso al backend
+    try {
+      await axios.post(
+        `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
+        { progreso: progresoCalculado },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("Progreso actualizado:", progresoCalculado);
+    } catch (err) {
+      console.error("Error al actualizar progreso:", err);
+    }
+  };
+
+  // FUNCION PARA FINALIZAR CURSO Y ENVIAR PROGRESO FINAL
+  const handleFinalizarCurso = async () => {
+    if (!cursoId) return;
+
+    let totalPreguntas = 0;
+    let totalCorrectas = 0;
+
+    curso?.modulos.forEach((modulo, index) => {
+      if (modulo.quiz && quizResults[index]) {
+        totalPreguntas += modulo.quiz.preguntas.length;
+        modulo.quiz.preguntas.forEach((pregunta, i) => {
+          if (quizResults[index].respuestas[i] === pregunta.respuestaCorrecta) {
+            totalCorrectas++;
+          }
+        });
+      }
+    });
+
+    const porcentajeFinal =
+      totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
+
+    const usuarioId = localStorage.getItem("userId");
+    if (!usuarioId) {
+      console.error("Usuario no autenticado");
+      alert("Debes iniciar sesión para finalizar el curso.");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
+        { progreso: porcentajeFinal },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      alert(`Curso finalizado con progreso ${porcentajeFinal}%`);
+    } catch (error) {
+      console.error("Error al finalizar curso:", error);
+      alert("No se pudo finalizar el curso. Intenta más tarde.");
+    }
   };
 
   if (loading)
@@ -280,6 +356,14 @@ const CourseDetail = () => {
           </div>
         )}
       </section>
+
+      {/* BOTÓN FINALIZAR CURSO */}
+      <button
+        onClick={handleFinalizarCurso}
+        className="mt-8 w-full py-3 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#6f8a3d] transition-colors"
+      >
+        Finalizar curso
+      </button>
 
       {/* Modal Quiz */}
       {showQuiz && quizModuloIndex !== null && curso.modulos[quizModuloIndex].quiz && (
