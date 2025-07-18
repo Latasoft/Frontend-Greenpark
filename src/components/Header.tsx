@@ -20,17 +20,11 @@ const Header = () => {
   const initials = getInitials(userName) || 'US';
 
   const handleRedirect = () => {
-    if (userRole === 'admin') {
-      navigate('/admin');
-    } else if (
-      userRole === 'estudiante' ||
-      userRole === 'docente' ||
-      userRole === 'apoderado'
-    ) {
-      navigate('/user');
-    } else {
-      navigate('/');
-    }
+    if (userRole === 'admin') navigate('/admin/profile');
+    else if (userRole === 'alumno') navigate('/user/profile');
+    else if (userRole === 'docente') navigate('/docente');
+    else if (userRole === 'apoderado') navigate('/comunidad');
+    else navigate('/');
   };
 
 
@@ -52,7 +46,34 @@ const Header = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <Link to="/" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Inicio</Link>
-              <Link to="/cursos" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Cursos</Link>
+            <div className="relative group">
+              <Link
+                to="/cursos"
+                className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors block"
+              >
+                Cursos
+              </Link>
+              <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50">
+                <Link
+                  to="/cursos/docente"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Docentes
+                </Link>
+                <Link
+                  to="/cursos/estudiante"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Estudiantes
+                </Link>
+                <Link
+                  to="/cursos/comunidad"
+                  className="block px-4 py-2 text-sm text-[#1A3D33] hover:bg-[#F0F0F0] transition-colors"
+                >
+                  Para Comunidad
+                </Link>
+              </div>
+            </div>
               <Link to="/biblioteca" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Biblioteca</Link>
               <Link to="/contacto" className="text-[#1A3D33] hover:text-[#8BAE52] px-3 py-2 text-sm font-medium transition-colors">Contacto</Link>
             </div>
