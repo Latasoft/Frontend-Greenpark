@@ -149,14 +149,14 @@ const Library = () => {
       {/* Modal para vista previa */}
       {showPreview && previewBookId && (
         <div
-          className="fixed inset-0 z-50 bg-gray-900 bg-opacity-70 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-md flex items-center justify-center"
           onClick={() => {
             setShowPreview(false);
             setPreviewBookId(null);
           }}
         >
           <div
-            className="bg-white rounded-lg w-full max-w-3xl h-[90vh] p-4 relative shadow-xl"
+            className="bg-white rounded-lg w-full max-w-3xl h-[90vh] p-4 relative shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -164,12 +164,12 @@ const Library = () => {
                 setShowPreview(false);
                 setPreviewBookId(null);
               }}
-              className="absolute -top-4 -right-4 bg-white text-[#1A3D33] hover:bg-red-500 hover:text-white shadow-lg rounded-full p-2 transition-colors z-10"
+              className="absolute -top-6 -right-6 bg-white text-[#1A3D33] hover:bg-red-500 hover:text-white shadow-lg rounded-full p-3 transition-colors z-10"
               aria-label="Cerrar vista previa"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-7 w-7"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
