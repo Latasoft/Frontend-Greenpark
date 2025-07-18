@@ -8,7 +8,7 @@ const baseURL =
     : "https://greenpark-backend-0ua6.onrender.com";
 
 const Courses = () => {
-  const { tipo } = useParams<{ tipo?: string }>(); // Captura 'docentes', 'estudiantes', 'comunidad' o undefined
+  const { tipo } = useParams<{ tipo?: string }>();
   const [cursos, setCursos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +22,18 @@ const Courses = () => {
       try {
         let url = "";
 
-        if (tipo) {
-          // Si hay tipo, buscar por tipo
-          url = `${baseURL}/api/cursos/publico/${tipo}`;
+        const tipoValido = tipo?.toLowerCase();
+
+        if (tipoValido && !["docente", "estudiante", "comunidad"].includes(tipoValido)) {
+          setError("Categoría no válida");
+          setCursos([]);
+          setLoading(false);
+          return;
+        }
+
+        if (tipoValido) {
+          url = `${baseURL}/api/cursos/publico/${tipoValido}`;
         } else {
-          // Si no, buscar todos
           url = `${baseURL}/api/cursos/lista`;
         }
 
@@ -40,7 +47,8 @@ const Courses = () => {
     };
 
     fetchCursos();
-  }, [tipo]); // Recarga cada vez que cambie el parámetro 'tipo'
+  }, [tipo]);
+
 
   if (loading) return <p className="text-center mt-8">Cargando cursos...</p>;
   if (error) return <p className="text-center mt-8 text-red-600">{error}</p>;
@@ -113,10 +121,12 @@ const Courses = () => {
                         Aprenderás:
                       </h4>
                       <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                        {curso.loAprenderan && curso.loAprenderan.length > 0 ? (
-                          curso.loAprenderan.map((item: string, index: number) => (
-                            <li key={index}>{item}</li>
-                          ))
+                        {curso.loAprenderan?.length ? (
+                          curso.loAprenderan.map(
+                            (item: string, index: number) => (
+                              <li key={index}>{item}</li>
+                            )
+                          )
                         ) : (
                           <li>No especificado</li>
                         )}
@@ -143,7 +153,9 @@ const Courses = () => {
                           navigate(`/cursos/${curso.id}`);
                         } catch (error) {
                           console.error("Error al registrar participante", error);
-                          alert("No se pudo registrar la participación. Intenta de nuevo.");
+                          alert(
+                            "No se pudo registrar la participación. Intenta de nuevo."
+                          );
                         }
                       }}
                     >

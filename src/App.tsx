@@ -14,8 +14,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import TitleHandler from './components/TitleHandler';
 import Library from './Library';
 import EditCourseWrapper from './Admin-Panel/components/EditCourseWrapper';
-import HomePage from './HomePage';
 import ParticipantesCurso from './Admin-Panel/components/ParticipantesCurso';
+import HomePage from './HomePage';
 
 function App() {
   return (
@@ -25,19 +25,15 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/cursos" element={<Courses />} />
-          <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
 
-          {/* Ruta dinámica para detalle de curso */}
+          {/* Rutas para cursos */}
+          <Route path="/cursos/dirigido/:tipo" element={<Courses />} />
+          <Route path="/cursos" element={<Courses />} />
           <Route path="/cursos/:cursoId" element={<CourseDetail />} />
-          <Route path="/biblioteca" element={<Library />} />
-          <Route path="/contacto" element={<Contact />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Register />} />
+
+          {/* Admin */}
           <Route path="/admin/courses/participantes/:id" element={<ParticipantesCurso />} />
           <Route path="/admin/courses/edit/:id" element={<EditCourseWrapper />} />
-
-          {/* Panel admin solo para rol admin */}
           <Route
             path="/admin/*"
             element={
@@ -47,7 +43,7 @@ function App() {
             }
           />
 
-          {/* Panel user para estudiante, docente, apoderado */}
+          {/* User Panel */}
           <Route
             path="/user/*"
             element={
@@ -56,6 +52,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Otras rutas */}
+          <Route path="/biblioteca" element={<Library />} />
+          <Route path="/contacto" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Register />} />
         </Routes>
         <Footer />
       </div>

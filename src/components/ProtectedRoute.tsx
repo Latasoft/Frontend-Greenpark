@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRole, allowedRoles }: ProtectedRouteProps) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const userRole = localStorage.getItem('userRole'); // ej: 'admin', 'estudiante', 'docente', 'apoderado'
+  const userRole = localStorage.getItem('userRole'); // ej: 'admin', 'estudiante', 'docente', 'comunidad'
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
