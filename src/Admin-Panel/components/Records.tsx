@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import UserDetailModal from './UserDetailModal'; // AsegÃºrate que la ruta sea correcta
+import UserDetailModal from './UserDetailModal';
 
 interface Usuario {
   id: string;
