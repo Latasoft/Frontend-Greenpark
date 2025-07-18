@@ -90,7 +90,7 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <RoleCard title="Docente" onClick={handleRoleClick} />
             <RoleCard title="Estudiante" onClick={handleRoleClick} />
-            <RoleCard title="comunidad" onClick={handleRoleClick} />
+            <RoleCard title="Comunidad" onClick={handleRoleClick} />
           </div>
         </div>
       </section>
