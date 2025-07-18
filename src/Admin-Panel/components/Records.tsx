@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import UserDetailModal from './UserDetailModal'; // Asegúrate que la ruta sea correcta
 
 interface Usuario {
   id: string;
@@ -14,13 +15,14 @@ interface Usuario {
 const Records = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get('https://greenpark-backend-0ua6.onrender.com/api/auth/users', {
         headers: {
-          Authorization: `Bearer ${token}`,  // ¡IMPORTANTE!
+          Authorization: `Bearer ${token}`,
         },
       });
       setUsuarios(res.data);
@@ -34,13 +36,11 @@ const Records = () => {
   useEffect(() => {
     fetchUsuarios();
   }, []);
-
-  // Aprobar usuario
+  //aprobar usuario
   const aprobarUsuario = async (userId: string) => {
     try {
       const token = localStorage.getItem('token');
-
-      const response = await axios.put(
+      await axios.put(
         `https://greenpark-backend-0ua6.onrender.com/api/auth/approve/${userId}`,
         {},
         {
@@ -49,16 +49,13 @@ const Records = () => {
           },
         }
       );
-
-      console.log('Usuario aprobado:', response.data);
-      fetchUsuarios(); // Refrescar lista después de aprobar
+      fetchUsuarios();
     } catch (error) {
       console.error('Error al aprobar usuario', error);
       alert('No se pudo aprobar el usuario');
     }
   };
-
-  // Eliminar usuario
+  //eliminar usuario
   const eliminarUsuario = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
@@ -67,7 +64,7 @@ const Records = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      fetchUsuarios(); // Refrescar lista después de eliminar
+      fetchUsuarios();
     } catch (error) {
       console.error('Error al eliminar usuario', error);
       alert('No se pudo eliminar el usuario');
@@ -85,21 +82,11 @@ const Records = () => {
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usuario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha de Registro
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo de Usuario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo de Usuario</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -116,13 +103,9 @@ const Records = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{user.rol}</td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.aprobado
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.aprobado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                       {user.aprobado ? 'Aprobado' : 'Pendiente'}
                     </span>
                   </td>
@@ -142,7 +125,10 @@ const Records = () => {
                       >
                         Eliminar
                       </button>
-                      <button className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white transition-colors">
+                      <button
+                        onClick={() => setSelectedUser(user)}
+                        className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white transition-colors"
+                      >
                         Ver
                       </button>
                     </div>
@@ -152,6 +138,11 @@ const Records = () => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modal de detalles del usuario */}
+      {selectedUser && (
+        <UserDetailModal usuario={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
     </div>
   );
