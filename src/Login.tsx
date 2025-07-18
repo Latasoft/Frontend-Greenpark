@@ -47,8 +47,8 @@ const Login: React.FC = () => {
         navigate('/docente');
       } else if (user.rol === 'estudiante') {
         navigate('/user');
-      } else if (user.rol === 'apoderado') {
-        navigate('/apoderado');
+      } else if (user.rol === 'comunidad') {
+        navigate('/comunidad');
       } else {
         setError('Rol desconocido');
       }
