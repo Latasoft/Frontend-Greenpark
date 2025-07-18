@@ -7,6 +7,11 @@ interface EnviarMensajeProps {
   currentUserRole: string;
 }
 
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+
 const EnviarMensaje: React.FC<EnviarMensajeProps> = ({
   currentUserEmail,
   currentUserName,
@@ -20,6 +25,8 @@ const EnviarMensaje: React.FC<EnviarMensajeProps> = ({
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+
+
   const handleEnviar = async () => {
     if (!to.trim() || !subject.trim() || !content.trim()) {
       setError('Por favor completa todos los campos.');
@@ -30,7 +37,7 @@ const EnviarMensaje: React.FC<EnviarMensajeProps> = ({
     try {
       setLoading(true);
       setError('');
-      await axios.post('https://greenpark-backend-0ua6.onrender.com/api/mensajes', {
+      await axios.post(`${baseURL}/api/mensajes`, {
         from: currentUserEmail,
         fromName: currentUserName,
         fromRole: currentUserRole,

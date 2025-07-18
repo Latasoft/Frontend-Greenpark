@@ -20,10 +20,15 @@ const Library = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewBookId, setPreviewBookId] = useState<string | null>(null);
 
+  const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await axios.get<Book[]>('https://greenpark-backend-0ua6.onrender.com/api/books/libros');
+        const response = await axios.get<Book[]>(`${baseURL}/api/books/libros`);
         setBooks(response.data);
       } catch (err) {
         setError('Error al cargar los libros');

@@ -13,8 +13,13 @@ interface Curso {
   dirigidoA: string;
   fechaInicio?: string | null;
   fechaTermino?: string | null;
-  // otros campos si hay
+  // agrega otros campos si tienes
 }
+
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
 
 const EditCourseWrapper = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,20 +28,23 @@ const EditCourseWrapper = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Obtener token antes para evitar recargas innecesarias
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     if (!id) return;
 
-    const token = localStorage.getItem("token");
     if (!token) {
       setError("No estás autenticado. Por favor, inicia sesión.");
       setLoading(false);
-      // Opcional: redirigir a login
+      // Si quieres redirigir al login automáticamente:
       // navigate('/login');
       return;
     }
 
+    setLoading(true);
     axios
-      .get(`https://greenpark-backend-0ua6.onrender.com/api/cursos/${id}`, {
+      .get(`${baseURL}/api/cursos/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -51,7 +59,7 @@ const EditCourseWrapper = () => {
         setCurso(null);
       })
       .finally(() => setLoading(false));
-  }, [id, navigate]);
+  }, [id, token, navigate]);
 
   if (loading) return <p>Cargando curso...</p>;
   if (error) return <p className="text-red-600">{error}</p>;

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import imgRegister from './assets/img-register.jpg';
+import axios from 'axios';
+
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -13,37 +19,60 @@ const Register = () => {
     confirmarPassword: ''
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const validateForm = () => {
+    if (!formData.nombre.trim() ||
+        !formData.apellido.trim() ||
+        !formData.correo.trim() ||
+        !formData.fechaNacimiento.trim() ||
+        !formData.rol.trim() ||
+        !formData.password.trim() ||
+        !formData.confirmarPassword.trim()) {
+      setError('Por favor, completa todos los campos.');
+      return false;
+    }
+    if (formData.password !== formData.confirmarPassword) {
+      setError('Las contraseñas no coinciden.');
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmarPassword) {
-      alert('Las contraseñas no coinciden');
-      return;
-    }
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      const response = await fetch('https://greenpark-backend-0ua6.onrender.com/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      const postData = {
+        nombre: formData.nombre.trim(),
+        apellido: formData.apellido.trim(),
+        correo: formData.correo.trim(),
+        fechaNacimiento: formData.fechaNacimiento,
+        rol: formData.rol.trim(),
+        password: formData.password,
+        confirmarPassword: formData.confirmarPassword,
+      };
 
-      if (!response.ok) {
-        throw new Error('Error al registrar');
-      }
+      console.log('Datos que se enviarán:', postData);
 
-      const data = await response.json();
-      console.log('Usuario registrado:', data);
-      alert('¡Cuenta creada exitosamente!');
+      await axios.post(`${baseURL}/api/auth/register`, postData);
 
-      // Limpia el formulario reseteando el estado a valores iniciales
+      setSuccess('¡Cuenta creada exitosamente!');
       setFormData({
         nombre: '',
         apellido: '',
@@ -53,13 +82,13 @@ const Register = () => {
         password: '',
         confirmarPassword: ''
       });
-      
-    } catch (error) {
-      console.error('Error al enviar formulario:', error);
-      alert('Hubo un problema al registrarse');
+    } catch (err: any) {
+      console.error('Error al enviar formulario:', err);
+      setError(err.response?.data?.message || 'Hubo un problema al registrarse');
+    } finally {
+      setLoading(false);
     }
-  
-};
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -71,7 +100,7 @@ const Register = () => {
           </div>
 
           <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleSubmit} noValidate>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                 <input
@@ -81,6 +110,8 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
                   placeholder="Ingresa tu nombre"
+                  required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -92,17 +123,23 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
                   placeholder="Ingresa tu apellido"
+                  required
+                  disabled={loading}
                 />
               </div>
-              <input
-                type="email"
-                name="correo" // ✅ antes: "email"
-                value={formData.correo}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
-                placeholder="correo@ejemplo.com"
-              />
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
+                <input
+                  type="email"
+                  name="correo"
+                  value={formData.correo}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
+                  placeholder="correo@ejemplo.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de nacimiento</label>
                 <input
@@ -111,22 +148,25 @@ const Register = () => {
                   value={formData.fechaNacimiento}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
+                  required
+                  disabled={loading}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de cuenta</label>
                 <select
-                  name="rol" // ✅ antes: "tipoCuenta"
+                  name="rol"
                   value={formData.rol}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
+                  required
+                  disabled={loading}
                 >
                   <option value="">Selecciona una opción</option>
                   <option value="docente">Docente</option>
                   <option value="estudiante">Estudiante</option>
-                  <option value="apoderado">Apoderado</option>
+                  <option value="comunidad">Comunidad</option>
                 </select>
-
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
@@ -137,6 +177,8 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
                   placeholder="Crea tu contraseña"
+                  required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -148,13 +190,22 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52]"
                   placeholder="Repite tu contraseña"
+                  required
+                  disabled={loading}
                 />
               </div>
+
+              {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+              {success && <p className="text-green-600 text-sm mb-2">{success}</p>}
+
               <button
                 type="submit"
-                className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors"
+                className={`w-full py-2 rounded-md transition-colors ${
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1A3D33] hover:bg-[#8BAE52] text-white'
+                }`}
+                disabled={loading}
               >
-                Crear cuenta
+                {loading ? 'Registrando...' : 'Crear cuenta'}
               </button>
             </form>
 
@@ -169,7 +220,6 @@ const Register = () => {
           </div>
         </div>
       </div>
-
 
       <div className="hidden md:block w-1/2 relative">
         <div className="absolute inset-0 bg-[#1A3D33] opacity-85"></div>
@@ -191,7 +241,7 @@ const Register = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Register
+export default Register;

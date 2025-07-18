@@ -3,6 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import fondoInicio from './assets/fondo-inicio.jpg'; 
 import axios from 'axios';
 
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+
 const Login: React.FC = () => {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +21,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://greenpark-backend-0ua6.onrender.com/api/auth/login', {
+      const response = await axios.post(`${baseURL}/api/auth/login`, {
         correo,
         password,
       });
@@ -102,7 +107,11 @@ const Login: React.FC = () => {
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <button
                 type="submit"
-                className={`w-full py-2 rounded-md transition-colors ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1A3D33] hover:bg-[#8BAE52] text-white'}`}
+                className={`w-full py-2 rounded-md transition-colors ${
+                  loading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-[#1A3D33] hover:bg-[#8BAE52] text-white'
+                }`}
                 disabled={loading}
               >
                 {loading ? 'Ingresando...' : 'Iniciar sesión'}

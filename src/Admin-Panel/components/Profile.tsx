@@ -4,13 +4,29 @@ interface ProfileProps {
   isAdminPanel?: boolean;
 }
 
+interface UserData {
+  nombre: string | null;
+  correo: string | null;
+  rol: string | null;
+  fechaNacimiento: string | null;
+  id: string | null;
+  imagenPerfil: string | null;
+}
+
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
+
 const Profile = ({ isAdminPanel = false }: ProfileProps) => {
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userCorreo, setUserCorreo] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userFechaNacimiento, setUserFechaNacimiento] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [imagenPerfil, setImagenPerfil] = useState<string | null>(null);
+  const [userData, setUserData] = useState<UserData>({
+    nombre: null,
+    correo: null,
+    rol: null,
+    fechaNacimiento: null,
+    id: null,
+    imagenPerfil: null,
+  });
 
   // Estados para edición
   const [editing, setEditing] = useState(false);
@@ -19,17 +35,16 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    setUserName(localStorage.getItem('userName'));
-    setUserCorreo(localStorage.getItem('userCorreo'));
-    setUserRole(localStorage.getItem('userRole'));
-    setUserFechaNacimiento(localStorage.getItem('userFechaNacimiento'));
-    setUserId(localStorage.getItem('userId'));
-    const storedImagen = localStorage.getItem('imagenPerfil');
-    setImagenPerfil(storedImagen);
+    const nombre = localStorage.getItem('userName');
+    const correo = localStorage.getItem('userCorreo');
+    const rol = localStorage.getItem('userRole');
+    const fechaNacimiento = localStorage.getItem('userFechaNacimiento');
+    const id = localStorage.getItem('userId');
+    const imagenPerfil = localStorage.getItem('imagenPerfil');
 
-    // Inicializa los campos de edición con los valores actuales
-    setNewCorreo(localStorage.getItem('userCorreo') || '');
-    setNewImagen(storedImagen || '');
+    setUserData({ nombre, correo, rol, fechaNacimiento, id, imagenPerfil });
+    setNewCorreo(correo || '');
+    setNewImagen(imagenPerfil || '');
   }, []);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,11 +55,11 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'unsigned_preset'); // ⚠️ Asegúrate que sea correcto
-    formData.append('cloud_name', 'dmmlobp9k'); // ⚠️ Tu Cloud name
+    formData.append('upload_preset', 'unsigned_preset'); // Asegúrate que sea correcto
+    formData.append('cloud_name', 'dmmlobp9k'); // Tu Cloud name
 
     try {
-      const response = await fetch('https://api.cloudinary.com/v1_1/dmmlobp9k/image/upload', {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/dmmlobp9k/image/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -65,7 +80,7 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
   };
 
   const handleUpdateProfile = async () => {
-    if (!userId) {
+    if (!userData.id) {
       alert('Usuario no identificado');
       return;
     }
@@ -73,11 +88,11 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`https://greenpark-backend-0ua6.onrender.com/api/auth/users/${userId}/profile`, {
+      const response = await fetch(`${baseURL}/api/auth/users/${userData.id}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token ?? ''}`,
         },
         body: JSON.stringify({
           correo: newCorreo,
@@ -88,10 +103,15 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        setUserCorreo(newCorreo);
-        setImagenPerfil(newImagen);
+        setUserData((prev) => ({
+          ...prev,
+          correo: newCorreo,
+          imagenPerfil: newImagen,
+        }));
+
         localStorage.setItem('userCorreo', newCorreo);
         localStorage.setItem('imagenPerfil', newImagen);
+
         setEditing(false);
         alert('Perfil actualizado con éxito');
       } else {
@@ -107,10 +127,19 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
     <div className="space-y-6">
       <div className="flex items-center gap-6">
         <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-          {imagenPerfil ? (
-            <img src={imagenPerfil} alt="Imagen de perfil" className="w-full h-full object-cover" />
+          {userData.imagenPerfil ? (
+            <img
+              src={userData.imagenPerfil}
+              alt="Imagen de perfil"
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-16 h-16 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -121,9 +150,9 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
           )}
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-[#1A3D33]">{userName ?? 'Sin nombre'}</h2>
-          <p className="text-gray-600">{isAdminPanel ? 'Administrador' : userRole ?? 'Sin especificar'}</p>
-          <p className="text-[#8BAE52]">{userCorreo ?? 'Sin email'}</p>
+          <h2 className="text-xl font-semibold text-[#1A3D33]">{userData.nombre ?? 'Sin nombre'}</h2>
+          <p className="text-gray-600">{isAdminPanel ? 'Administrador' : userData.rol ?? 'Sin especificar'}</p>
+          <p className="text-[#8BAE52]">{userData.correo ?? 'Sin email'}</p>
           <button
             className="mt-2 px-4 py-1 text-sm bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-colors"
             onClick={() => setEditing(!editing)}
@@ -151,13 +180,14 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
               accept="image/*"
               onChange={handleImageUpload}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              disabled={uploading}
             />
             {uploading && <p className="text-sm text-gray-500 mt-1">Subiendo imagen...</p>}
-            
           </div>
           <button
             onClick={handleUpdateProfile}
             className="bg-[#8BAE52] text-white px-4 py-2 rounded-md hover:bg-[#1A3D33] transition-colors"
+            disabled={uploading}
           >
             Guardar cambios
           </button>
@@ -179,19 +209,19 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">Nombre completo</label>
-            <p className="mt-1 text-gray-400 italic">{userName ?? 'Sin especificar'}</p>
+            <p className="mt-1 text-gray-400 italic">{userData.nombre ?? 'Sin especificar'}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Fecha de nacimiento</label>
-            <p className="mt-1 text-gray-400 italic">{userFechaNacimiento ?? 'Sin especificar'}</p>
+            <p className="mt-1 text-gray-400 italic">{userData.fechaNacimiento ?? 'Sin especificar'}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Email</label>
-            <p className="mt-1 text-gray-400 italic">{userCorreo ?? 'Sin especificar'}</p>
+            <p className="mt-1 text-gray-400 italic">{userData.correo ?? 'Sin especificar'}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Rol</label>
-            <p className="mt-1 text-[#1A3D33]">{isAdminPanel ? 'Administrador' : userRole ?? 'Sin especificar'}</p>
+            <p className="mt-1 text-[#1A3D33]">{isAdminPanel ? 'Administrador' : userData.rol ?? 'Sin especificar'}</p>
           </div>
         </div>
       </div>

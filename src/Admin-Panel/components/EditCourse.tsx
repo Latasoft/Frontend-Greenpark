@@ -40,6 +40,11 @@ interface EditCourseProps {
   cursoInicial: Curso;
 }
 
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
+
 const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
   const [titulo, setTitulo] = useState(cursoInicial.titulo || "");
   const [imagen, setImagen] = useState<File | null>(null); // Imagen nueva opcional
@@ -190,7 +195,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        `https://greenpark-backend-0ua6.onrender.com/api/cursos/${cursoId}`,
+        `${baseURL}/api/cursos/${cursoId}`,
         formData,
         {
           headers: {

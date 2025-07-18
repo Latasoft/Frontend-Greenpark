@@ -7,7 +7,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const userRole = localStorage.getItem('userRole'); // Puede ser 'admin', 'alumno', etc.
+  const userRole = (localStorage.getItem('userRole') || '').toLowerCase(); // Puede ser 'admin', 'alumno', etc.
   const userName = localStorage.getItem('userName') || '';
 
   const getInitials = (name: string) =>
@@ -20,12 +20,16 @@ const Header = () => {
   const initials = getInitials(userName) || 'US';
 
   const handleRedirect = () => {
-    if (userRole === 'admin') navigate('/admin/profile');
-    else if (userRole === 'alumno') navigate('/user/profile');
-    else if (userRole === 'docente') navigate('/docente');
-    else if (userRole === 'comunidad') navigate('/comunidad');
-    else navigate('/');
+    console.log('userRole:', userRole);
+    if (userRole === 'admin') {
+      navigate('/admin/profile');
+    } else if (['estudiante', 'docente', 'comunidad'].includes(userRole)) {
+      navigate('/user');
+    } else {
+      navigate('/');
+    }
   };
+
 
   const handleLogout = () => {
     localStorage.clear();
@@ -105,6 +109,7 @@ const Header = () => {
                 >
                   {initials}
                 </button>
+
                 <button
                   onClick={handleLogout}
                   className="text-[#1A3D33] hover:text-red-600 text-sm font-medium transition-colors"

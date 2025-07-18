@@ -11,14 +11,28 @@ interface Usuario {
   aprobado: boolean;
 }
 
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+
 const Records = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsuarios = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://greenpark-backend-0ua6.onrender.com/api/auth/users', {
+      if (!token) {
+        setError('No tienes token de autenticación. Por favor inicia sesión.');
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get(`${baseURL}/api/auth/users`, {
         headers: {
           Authorization: `Bearer ${token}`,  // ¡IMPORTANTE!
         },
@@ -26,6 +40,7 @@ const Records = () => {
       setUsuarios(res.data);
     } catch (error) {
       console.error('Error al obtener usuarios', error);
+      setError('Error al cargar usuarios. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -37,11 +52,16 @@ const Records = () => {
 
   // Aprobar usuario
   const aprobarUsuario = async (userId: string) => {
+    setError(null);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        alert('No tienes token de autenticación. Por favor inicia sesión.');
+        return;
+      }
 
       const response = await axios.put(
-        `https://greenpark-backend-0ua6.onrender.com/api/auth/approve/${userId}`,
+        `${baseURL}/api/auth/approve/${userId}`,
         {},
         {
           headers: {
@@ -52,25 +72,31 @@ const Records = () => {
 
       console.log('Usuario aprobado:', response.data);
       fetchUsuarios(); // Refrescar lista después de aprobar
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al aprobar usuario', error);
-      alert('No se pudo aprobar el usuario');
+      alert(error.response?.data?.message || 'No se pudo aprobar el usuario');
     }
   };
 
   // Eliminar usuario
   const eliminarUsuario = async (id: string) => {
+    setError(null);
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`https://greenpark-backend-0ua6.onrender.com/api/auth/users/${id}`, {
+      if (!token) {
+        alert('No tienes token de autenticación. Por favor inicia sesión.');
+        return;
+      }
+
+      await axios.delete(`${baseURL}/api/auth/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       fetchUsuarios(); // Refrescar lista después de eliminar
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar usuario', error);
-      alert('No se pudo eliminar el usuario');
+      alert(error.response?.data?.message || 'No se pudo eliminar el usuario');
     }
   };
 
@@ -78,9 +104,15 @@ const Records = () => {
     <div className="bg-white p-6">
       <h2 className="text-2xl font-semibold text-[#1A3D33] mb-6">Registros</h2>
 
-      {loading ? (
-        <p className="text-gray-500">Cargando usuarios...</p>
-      ) : (
+      {loading && <p className="text-gray-500">Cargando usuarios...</p>}
+
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+
+      {!loading && !error && usuarios.length === 0 && (
+        <p className="text-gray-500">No hay usuarios para mostrar.</p>
+      )}
+
+      {!loading && !error && usuarios.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50">

@@ -31,6 +31,11 @@ interface MessagesProps {
   userRole?: string;
 }
 
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+    
 const Messages: React.FC<MessagesProps> = ({ userEmail }) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,9 +44,7 @@ const Messages: React.FC<MessagesProps> = ({ userEmail }) => {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const res = await axios.get(
-          `https://greenpark-backend-0ua6.onrender.com/api/mensajes?correo=${userEmail}`
-        );
+        const res = await axios.get(`${baseURL}/api/mensajes?correo=${userEmail}`);
         setMessages(res.data);
       } catch (error) {
         console.error('Error al obtener mensajes:', error);

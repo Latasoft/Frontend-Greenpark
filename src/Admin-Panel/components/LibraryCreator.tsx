@@ -5,6 +5,11 @@ interface LibraryCreatorProps {
   onBookCreated: () => void; // Nuevo prop para notificar creación exitosa
 }
 
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
+
 const LibraryCreator = ({ onCancel, onBookCreated }: LibraryCreatorProps) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -35,7 +40,7 @@ const LibraryCreator = ({ onCancel, onBookCreated }: LibraryCreatorProps) => {
     form.append('pdf', file);
 
     try {
-      const response = await fetch('https://greenpark-backend-0ua6.onrender.com/api/books/upload', {
+      const response = await fetch(`${baseURL}/api/books/upload`, {
         method: 'POST',
         body: form,
       });
