@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -9,10 +9,15 @@ const baseURL =
 
 const Courses = () => {
   const { tipo } = useParams<{ tipo?: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const searchParams = new URLSearchParams(location.search);
+  const destacados = searchParams.get("destacados");
+
   const [cursos, setCursos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCursos = async () => {
@@ -22,23 +27,31 @@ const Courses = () => {
       try {
         let url = "";
 
-        const tipoValido = tipo?.toLowerCase();
-
-        if (tipoValido && !["docente", "estudiante", "comunidad"].includes(tipoValido)) {
-          setError("Categoría no válida");
-          setCursos([]);
-          setLoading(false);
-          return;
-        }
-
-        if (tipoValido) {
-          url = `${baseURL}/api/cursos/publico/${tipoValido}`;
+        if (destacados === "true") {
+          url = `${baseURL}/api/cursos/destacados`;
         } else {
-          url = `${baseURL}/api/cursos/lista`;
+          const tipoValido = tipo?.toLowerCase();
+
+          if (
+            tipoValido &&
+            !["docente", "estudiante", "comunidad"].includes(tipoValido)
+          ) {
+            setError("Categoría no válida");
+            setCursos([]);
+            setLoading(false);
+            return;
+          }
+
+          if (tipoValido) {
+            url = `${baseURL}/api/cursos/publico/${tipoValido}`;
+          } else {
+            url = `${baseURL}/api/cursos/lista`;
+          }
         }
 
         const res = await axios.get(url);
-        setCursos(res.data);
+        // Ajusta según estructura de la respuesta
+        setCursos(res.data.cursos || res.data);
       } catch (err) {
         setError("Error al cargar cursos");
       } finally {
@@ -47,11 +60,14 @@ const Courses = () => {
     };
 
     fetchCursos();
-  }, [tipo]);
+  }, [tipo, destacados]);
 
-
-  if (loading) return <p className="text-center mt-8">Cargando cursos...</p>;
-  if (error) return <p className="text-center mt-8 text-red-600">{error}</p>;
+  if (loading)
+    return <p className="text-center mt-8">Cargando cursos...</p>;
+  if (error)
+    return (
+      <p className="text-center mt-8 text-red-600">{error}</p>
+    );
 
   return (
     <div className="min-h-screen bg-white">
@@ -67,10 +83,16 @@ const Courses = () => {
         ></div>
         <div className="relative w-full text-center">
           <h1 className="text-[32px] text-white font-bold mb-4 capitalize">
-            {tipo ? `Cursos para ${tipo}` : "Transforma tu Carrera Educativa"}
+            {destacados === "true"
+              ? "Cursos Destacados"
+              : tipo
+              ? `Cursos para ${tipo}`
+              : "Transforma tu Carrera Educativa"}
           </h1>
           <p className="text-base text-white max-w-3xl mx-auto">
-            {tipo
+            {destacados === "true"
+              ? "Los 10 cursos con más participantes"
+              : tipo
               ? `Cursos especializados para ${tipo}`
               : "Cursos especializados con enfoque práctico y profesional"}
           </p>
@@ -106,7 +128,9 @@ const Courses = () => {
                       {curso.titulo}
                     </h3>
                     <div className="flex items-center text-sm text-gray-600 mb-4">
-                      <span>Duración: {curso.duracionHoras || "N/A"} horas</span>
+                      <span>
+                        Duración: {curso.duracionHoras || "N/A"} horas
+                      </span>
                     </div>
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-[#1A3D33] mb-2">
@@ -147,11 +171,13 @@ const Courses = () => {
                             }
                           );
 
-
                           alert("¡Registro exitoso!");
                           navigate(`/cursos/${curso.id}`);
                         } catch (error) {
-                          console.error("Error al registrar participante", error);
+                          console.error(
+                            "Error al registrar participante",
+                            error
+                          );
                           alert(
                             "No se pudo registrar la participación. Intenta de nuevo."
                           );

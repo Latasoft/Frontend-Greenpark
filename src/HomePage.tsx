@@ -38,8 +38,12 @@ const HomePage: React.FC = () => {
 
   const RoleCard: React.FC<RoleCardProps> = ({ title, onClick }) => (
     <div
-      className="relative cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      className="relative cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#8BAE52]"
+      aria-label={`Seleccionar perfil ${title}`}
     >
       <div className="absolute top-3 left-3 w-full h-full border-2 border-[#8BAE52] rounded-2xl"></div>
       <div className="relative bg-white border-2 border-[#1A3D33] rounded-2xl p-8">
@@ -60,7 +64,7 @@ const HomePage: React.FC = () => {
       >
         <div className="absolute inset-0" style={{ backgroundColor: '#1A3D33', opacity: 0.85 }}></div>
         <div className="relative w-full">
-          <div className="text-center">
+          <div className="text-center px-4">
             <h1 className="text-[32px] text-white font-bold mb-4">
               Conviértete en un Líder de la Innovación
             </h1>
@@ -69,6 +73,7 @@ const HomePage: React.FC = () => {
               transformación urbana, para Docentes, Apoderados y Estudiantes
             </p>
             <button
+              type="button"
               onClick={() => navigate('/cursos')}
               className="bg-white text-[#1A3D33] px-6 py-2 rounded-md text-base font-medium hover:bg-[#8BAE52] hover:text-white transition-colors"
             >
@@ -133,7 +138,11 @@ const HomePage: React.FC = () => {
                 Descubre por qué estos cursos son los favoritos de nuestros alumnos.
               </p>
               <div className="text-left">
-                <button className="bg-white text-[#1A3D33] px-6 py-2 rounded-md text-base font-medium hover:bg-[#8BAE52] hover:text-white transition-colors">
+                <button
+                  type="button"
+                  onClick={() => navigate('/cursos?destacados=true')}
+                  className="bg-white text-[#1A3D33] px-6 py-2 rounded-md text-base font-medium hover:bg-[#8BAE52] hover:text-white transition-colors"
+                >
                   Ver destacados
                 </button>
               </div>
