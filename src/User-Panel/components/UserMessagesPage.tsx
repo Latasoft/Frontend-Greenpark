@@ -8,7 +8,7 @@ const UserMessagesPage = () => {
   if (!user) return <div>Cargando usuario...</div>;
 
   return (
-    <div className="p-4">
+    <div className="h-[80vh] overflow-y-auto p-4 bg-white rounded-lg shadow">
       <h1 className="text-2xl font-bold mb-6">Tus mensajes</h1>
 
       <div className="mb-8">
