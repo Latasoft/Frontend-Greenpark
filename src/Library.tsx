@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 type Book = {
@@ -19,11 +20,20 @@ const Library = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [previewBookId, setPreviewBookId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const baseURL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3000"
-    : "https://greenpark-backend-0ua6.onrender.com";
+    window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://greenpark-backend-0ua6.onrender.com';
+
+  // Verificar si el usuario está autenticado
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -48,9 +58,7 @@ const Library = () => {
     }
 
     try {
-      const response = await axios.get(pdfUrl, {
-        responseType: 'blob',
-      });
+      const response = await axios.get(pdfUrl, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -146,7 +154,6 @@ const Library = () => {
         </div>
       </div>
 
-      {/* Modal para vista previa */}
       {showPreview && previewBookId && (
         <div
           className="fixed inset-0 z-50 bg-black/20 backdrop-blur-md flex items-center justify-center"
