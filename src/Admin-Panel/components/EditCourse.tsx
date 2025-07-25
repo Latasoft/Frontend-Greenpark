@@ -432,7 +432,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
                         />
                         <input
                           type="url"
-                          placeholder="URL del enlace"
+                          placeholder="Agrega un enlace o link de interés asociado al módulo"
                           value={modulo.enlaces[0]?.url || ""}
                           onChange={(e) =>
                             cambiarEnlaceModulo(i, 0, "url", e.target.value)
