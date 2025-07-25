@@ -314,7 +314,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
                             setHerramientaInput("");
                           }
                         }}
-                        placeholder="Presiona Enter para agregar"
+                        placeholder="Escribe las herramientas a utilizar"
                         className="flex-1 px-2 outline-none"
                       />
                     </div>
@@ -355,7 +355,7 @@ const EditCourse = ({ cursoId, cursoInicial }: EditCourseProps) => {
                             setLoAprenderanInput("");
                           }
                         }}
-                        placeholder="Presiona Enter para agregar"
+                        placeholder="Escribe lo que aprenderán los estudiantes"
                         className="flex-1 px-2 outline-none"
                       />
                     </div>
