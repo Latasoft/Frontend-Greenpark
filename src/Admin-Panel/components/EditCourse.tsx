@@ -417,7 +417,7 @@ const EditCourse: React.FC<EditCourseProps> = ({ cursoId }) => {
                           addLoAprenderanFromInput();
                         }
                       }}
-                      placeholder="Presiona Enter para agregar"
+                      placeholder="Presiona Enter para agregar tag"
                       className="flex-1 px-2 py-1 outline-none bg-transparent"
                     />
                   </div>
