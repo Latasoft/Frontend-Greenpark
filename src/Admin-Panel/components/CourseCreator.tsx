@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 
@@ -22,16 +22,31 @@ interface Modulo {
   };
 }
 
-const CrearCurso = () => {
+interface Curso {
+  titulo: string;
+  herramientas: string[];
+  loAprenderan: string[];
+  duracionHoras: number;
+  bienvenida: string;
+  modulos: Modulo[];
+  fechaInicio: string;
+  fechaTermino: string;
+  dirigidoA: string;
+  // La imagen y archivos los manejamos aparte
+}
+
+interface EditCourseProps {
+  cursoId: string;
+}
+
+const EditCourse = ({ cursoId }: EditCourseProps) => {
   const [titulo, setTitulo] = useState("");
   const [imagen, setImagen] = useState<File | null>(null);
   const [herramientas, setHerramientas] = useState<string[]>([]);
   const [loAprenderan, setLoAprenderan] = useState<string[]>([]);
-  const [duracionHoras, setDuracionHoras] = useState<number>(0);
+  const [duracionHoras, setDuracionHoras] = useState(0);
   const [bienvenida, setBienvenida] = useState("");
-  const [modulos, setModulos] = useState<Modulo[]>([
-    { nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } },
-  ]);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
   const [archivosModulo, setArchivosModulo] = useState<File[]>([]);
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaTermino, setFechaTermino] = useState("");
@@ -43,11 +58,44 @@ const CrearCurso = () => {
   const [preguntasTemp, setPreguntasTemp] = useState<Pregunta[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
-
   const [nuevaPregunta, setNuevaPregunta] = useState("");
   const [nuevasOpciones, setNuevasOpciones] = useState<string[]>(["", ""]);
-  const [respuestaCorrectaTemp, setRespuestaCorrectaTemp] = useState<number>(0);
+  const [respuestaCorrectaTemp, setRespuestaCorrectaTemp] = useState(0);
+
+  // URL base dinámica según entorno
+  const baseURL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://greenpark-backend-0ua6.onrender.com";
+
+  // Cargar datos del curso para editar
+  useEffect(() => {
+    const fetchCurso = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get<Curso>(`${baseURL}/api/cursos/${cursoId}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        setTitulo(data.titulo);
+        setHerramientas(data.herramientas || []);
+        setLoAprenderan(data.loAprenderan || []);
+        setDuracionHoras(data.duracionHoras || 0);
+        setBienvenida(data.bienvenida || "");
+        setModulos(data.modulos.length ? data.modulos : [{ nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } }]);
+        setFechaInicio(data.fechaInicio || "");
+        setFechaTermino(data.fechaTermino || "");
+        setDirigidoA(data.dirigidoA || "");
+      } catch (error) {
+        console.error("Error cargando curso:", error);
+        alert("No se pudo cargar el curso para editar");
+      }
+    };
+
+    fetchCurso();
+  }, [cursoId, baseURL]);
 
   // Manejo archivos e imagen
   const handleImagenChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -95,17 +143,20 @@ const CrearCurso = () => {
     setModulos(nuevosModulos);
   };
 
-  // URL base dinámica según entorno
-  const baseURL =
-    window.location.hostname === "localhost"
-      ? "http://localhost:3000"
-      : "https://greenpark-backend-0ua6.onrender.com";
+  const finalizarQuiz = () => {
+    if (quizIndex === null) return;
+    const nuevosModulos = [...modulos];
+    nuevosModulos[quizIndex].quiz = { preguntas: preguntasTemp };
+    setModulos(nuevosModulos);
+    setPreguntasTemp([]);
+    setQuizIndex(null);
+    setIsQuizModalOpen(false);
+  };
 
-  // Enviar formulario con axios
+  // Submit - actualizar curso
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // ⬇️ Activa el spinner y desactiva el botón
     setIsSubmitting(true);
 
     if (!titulo.trim()) {
@@ -113,85 +164,48 @@ const CrearCurso = () => {
       setIsSubmitting(false);
       return;
     }
-    if (!imagen) {
-      alert("La imagen es obligatoria");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("titulo", titulo);
-    formData.append("imagen", imagen);
-    formData.append("herramientas", JSON.stringify(herramientas));
-    formData.append("loAprenderan", JSON.stringify(loAprenderan));
-    formData.append("duracionHoras", duracionHoras.toString());
-    formData.append("bienvenida", bienvenida);
-    formData.append("modulos", JSON.stringify(modulos));
-    formData.append("fechaInicio", fechaInicio);
-    formData.append("fechaTermino", fechaTermino);
-    formData.append("dirigidoA", dirigidoA);
-
-    archivosModulo.forEach((file) => {
-      formData.append("archivosModulo", file);
-    });
-
-    const token = localStorage.getItem("token");
 
     try {
-      await axios.post(`${baseURL}/api/cursos`, formData, {
+      const formData = new FormData();
+      formData.append("titulo", titulo);
+      if (imagen) formData.append("imagen", imagen); // imagen es opcional en edición
+      formData.append("herramientas", JSON.stringify(herramientas));
+      formData.append("loAprenderan", JSON.stringify(loAprenderan));
+      formData.append("duracionHoras", duracionHoras.toString());
+      formData.append("bienvenida", bienvenida);
+      formData.append("modulos", JSON.stringify(modulos));
+      formData.append("fechaInicio", fechaInicio);
+      formData.append("fechaTermino", fechaTermino);
+      formData.append("dirigidoA", dirigidoA);
+
+      archivosModulo.forEach((file) => {
+        formData.append("archivosModulo", file);
+      });
+
+      const token = localStorage.getItem("token");
+
+      await axios.put(`${baseURL}/api/cursos/${cursoId}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      alert("Curso creado con éxito");
-
-      // Reset formulario (opcional)
-      setTitulo("");
-      setImagen(null);
-      setHerramientas([]);
-      setLoAprenderan([]);
-      setDuracionHoras(0);
-      setBienvenida("");
-      setModulos([{ nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } }]);
-      setArchivosModulo([]);
-      setFechaInicio("");
-      setFechaTermino("");
-      setDirigidoA("");
-    } catch (error: any) {
-      if (error.response) {
-        alert("Error: " + error.response.data);
-      } else {
-        alert("Error al crear curso");
-      }
+      alert("Curso actualizado con éxito");
+    } catch (error) {
       console.error(error);
+      alert("Error al actualizar el curso");
     } finally {
-      // ⬇️ Desactiva el spinner y vuelve a habilitar el botón
       setIsSubmitting(false);
     }
   };
-
-
-  const finalizarQuiz = () => {
-    if (quizIndex === null) return;
-
-    const nuevosModulos = [...modulos];
-    nuevosModulos[quizIndex].quiz = { preguntas: preguntasTemp };
-    setModulos(nuevosModulos);
-
-    setPreguntasTemp([]);
-    setQuizIndex(null);
-    setIsQuizModalOpen(false);
-  };
-
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="h-[calc(100vh-8rem)] overflow-y-auto">
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-[#1A3D33] mb-6">Nuevo Curso</h2>
+            <h2 className="text-xl font-semibold text-[#1A3D33] mb-6">Editar Curso</h2>
 
             <div className="space-y-6">
               {/* Información del Curso */}
@@ -211,7 +225,7 @@ const CrearCurso = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Curso</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Curso (Opcional)</label>
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-[#8BAE52] focus-within:border-[#8BAE52] focus-within:bg-[#8BAE52]/5">
                       <div className="space-y-1 text-center">
                         <svg
@@ -234,23 +248,18 @@ const CrearCurso = () => {
                             <input
                               type="file"
                               accept="image/*"
-                              required
                               onChange={handleImagenChange}
                               className="sr-only"
                             />
-
-
                           </label>
                           <span className="pl-1">o arrastrar y soltar</span>
                         </div>
-                        <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
                         {imagen && (
                           <p className="mt-2 text-sm text-gray-600">Archivo seleccionado: <span className="font-medium">{imagen.name}</span></p>
                         )}
                       </div>
                     </div>
                   </div>
-
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Herramientas</label>
@@ -285,6 +294,7 @@ const CrearCurso = () => {
                       />
                     </div>
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Aprenderás</label>
                     <div className="flex flex-wrap items-center gap-2 border border-gray-300 rounded-md p-2 min-h-[42px]">
@@ -318,9 +328,6 @@ const CrearCurso = () => {
                       />
                     </div>
                   </div>
-
-
-
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Duración (horas)</label>
@@ -374,66 +381,63 @@ const CrearCurso = () => {
                           placeholder="Título del enlace"
                           value={modulo.enlaces[0]?.nombre || ""}
                           onChange={(e) => cambiarEnlaceModulo(i, 0, "nombre", e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
                         />
                         <input
                           type="url"
                           placeholder="URL del enlace"
                           value={modulo.enlaces[0]?.url || ""}
                           onChange={(e) => cambiarEnlaceModulo(i, 0, "url", e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
                         />
                       </div>
+                      <div className="flex gap-4 items-center mt-4">
+                        <div className="relative w-fit">
+                          <input
+                            id={`file-upload-${i}`}
+                            type="file"
+                            multiple
+                            onChange={handleArchivosModuloChange}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            className="bg-[#1A3D33] text-white px-4 py-2 rounded-md hover:bg-[#152f27]"
+                            onClick={() => document.getElementById(`file-upload-${i}`)?.click()}
+                          >
+                            Adjuntar Archivos
+                          </button>
+                        </div>
+                        {i === modulos.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={agregarModulo}
+                            className="text-[#8BAE52] hover:text-[#1A3D33] font-medium"
+                          >
+                            + Agregar nuevo módulo
+                          </button>
+                        )}
+                      </div>
 
-                      {/* Quiz */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQuizIndex(i);
-                          setPreguntasTemp(modulos[i].quiz?.preguntas || []);
-                          setIsQuizModalOpen(true);
-                        }}
-                        className="text-[#8BAE52] hover:text-[#1A3D33] font-medium"
-                      >
-                        + Agregar Quiz
-                      </button>
-
-
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuizIndex(i);
+                            setPreguntasTemp(modulo.quiz?.preguntas || []);
+                            setIsQuizModalOpen(true);
+                          }}
+                          className="text-[#8BAE52] hover:text-[#1A3D33] font-semibold"
+                        >
+                          {modulo.quiz ? "Editar Quiz" : "Crear Quiz"}
+                        </button>
+                      </div>
                     </div>
                   ))}
-
-                  <div className="flex gap-4 items-center mt-4">
-
-
-                    <div className="relative w-fit">
-                      <input
-                        id="file-upload"
-                        type="file"
-                        multiple
-                        onChange={handleArchivosModuloChange}
-                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      />
-                      <button
-                        type="button"
-                        className="bg-[#1A3D33] text-white px-4 py-2 rounded-md hover:bg-[#152f27]"
-                        onClick={() => document.getElementById("file-upload")?.click()}
-                      >
-                        Adjuntar Archivos
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={agregarModulo}
-                      className="text-[#8BAE52] hover:text-[#1A3D33] font-medium"
-                    >
-                      + Agregar nuevo módulo
-                    </button>
-                  </div>
                 </div>
               </div>
 
-
-              {/* Configuración */}
+              {/* Configuración del Curso */}
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">Configuración del curso</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -456,10 +460,7 @@ const CrearCurso = () => {
                     />
                   </div>
                   <div className="md:col-span-2 mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Dirigido a
-                    </label>
-
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Dirigido a</label>
                     <select
                       value={dirigidoA}
                       onChange={(e) => setDirigidoA(e.target.value)}
@@ -472,14 +473,8 @@ const CrearCurso = () => {
                       <option value="comunidad">Comunidad</option>
                     </select>
                   </div>
-
-
-
                 </div>
               </div>
-
-
-
 
               {/* Botones */}
               <div className="flex justify-end space-x-4">
@@ -487,9 +482,7 @@ const CrearCurso = () => {
                   type="submit"
                   disabled={isSubmitting}
                   className={`px-6 py-2 rounded-md text-white transition-colors duration-200 ${
-                    isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-[#8BAE52] hover:bg-[#1A3D33]'
+                    isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#8BAE52] hover:bg-[#1A3D33]"
                   }`}
                 >
                   {isSubmitting ? (
@@ -510,33 +503,29 @@ const CrearCurso = () => {
                           d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                         />
                       </svg>
-                      Creando...
+                      Actualizando...
                     </div>
                   ) : (
-                    'Crear Curso'
+                    "Actualizar Curso"
                   )}
                 </button>
-
               </div>
             </div>
           </div>
         </div>
 
-
+        {/* Modal Quiz */}
         {isQuizModalOpen && quizIndex !== null && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Fondo oscuro que cierra el modal al hacer clic */}
             <div
               className="absolute inset-0 bg-black opacity-50"
               onClick={() => setIsQuizModalOpen(false)}
             ></div>
 
-            {/* Contenido del modal */}
             <div
               className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()} // Evita que el clic cierre el modal
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Botón de cerrar */}
               <button
                 onClick={() => setIsQuizModalOpen(false)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
@@ -544,9 +533,8 @@ const CrearCurso = () => {
                 ✕
               </button>
 
-              <h2 className="text-2xl font-bold mb-4">Crear Quiz</h2>
+              <h2 className="text-2xl font-bold mb-4">Editar Quiz</h2>
 
-              {/* Lista de preguntas agregadas */}
               {preguntasTemp.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-4">Preguntas Añadidas:</h3>
@@ -560,13 +548,12 @@ const CrearCurso = () => {
                       >
                         ✕
                       </button>
-                      <p className="font-medium">Pregunta {index + 1}: {q.pregunta}</p>
+                      <p className="font-medium">
+                        Pregunta {index + 1}: {q.pregunta}
+                      </p>
                       <ul className="ml-4 mt-2">
                         {q.opciones.map((opt, idx) => (
-                          <li
-                            key={idx}
-                            className={idx === q.respuestaCorrecta ? "text-[#8BAE52]" : ""}
-                          >
+                          <li key={idx} className={idx === q.respuestaCorrecta ? "text-[#8BAE52]" : ""}>
                             • {opt} {idx === q.respuestaCorrecta && "(Correcta)"}
                           </li>
                         ))}
@@ -576,7 +563,6 @@ const CrearCurso = () => {
                 </div>
               )}
 
-              {/* Formulario para agregar preguntas */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -599,9 +585,7 @@ const CrearCurso = () => {
                 }}
                 className="space-y-4 pb-10"
               >
-                {/* Campo de nueva pregunta */}
                 <div className="space-y-4 pb-10">
-                  {/* Campo de nueva pregunta */}
                   <div>
                     <label className="block mb-2">Nueva Pregunta:</label>
                     <input
@@ -613,7 +597,6 @@ const CrearCurso = () => {
                     />
                   </div>
 
-                  {/* Opciones de respuesta */}
                   <div className="space-y-3">
                     <label className="block mb-2">Opciones:</label>
                     {nuevasOpciones.map((opt, idx) => (
@@ -656,7 +639,6 @@ const CrearCurso = () => {
                     ))}
                   </div>
 
-                  {/* Botones */}
                   <div className="flex items-center justify-between pt-4">
                     <div className="flex space-x-2">
                       <button
@@ -702,18 +684,13 @@ const CrearCurso = () => {
                     )}
                   </div>
                 </div>
-
               </form>
             </div>
           </div>
         )}
-
-
-
       </div>
     </form>
-
-
   );
 };
-export default CrearCurso;
+
+export default EditCourse;

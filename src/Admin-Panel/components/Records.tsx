@@ -12,6 +12,12 @@ interface Usuario {
   aprobado: boolean;
 }
 
+// Definimos la baseURL según dónde esté la app
+const baseURL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://greenpark-backend-0ua6.onrender.com';
+
 const Records = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +26,7 @@ const Records = () => {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://greenpark-backend-0ua6.onrender.com/api/auth/users', {
+      const res = await axios.get(`${baseURL}/api/auth/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -36,12 +42,12 @@ const Records = () => {
   useEffect(() => {
     fetchUsuarios();
   }, []);
-  //aprobar usuario
+
   const aprobarUsuario = async (userId: string) => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://greenpark-backend-0ua6.onrender.com/api/auth/approve/${userId}`,
+        `${baseURL}/api/auth/approve/${userId}`,
         {},
         {
           headers: {
@@ -55,11 +61,11 @@ const Records = () => {
       alert('No se pudo aprobar el usuario');
     }
   };
-  //eliminar usuario
+
   const eliminarUsuario = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`https://greenpark-backend-0ua6.onrender.com/api/auth/users/${id}`, {
+      await axios.delete(`${baseURL}/api/auth/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

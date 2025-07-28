@@ -1,71 +1,21 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import EditCourse from "./EditCourse";
 
-interface Curso {
-  titulo: string;
-  herramientas: any[];
-  loAprenderan: any[];
-  modulos: any[];
-  duracionHoras: number;
-  bienvenida: string;
-  dirigidoA: string;
-  fechaInicio?: string | null;
-  fechaTermino?: string | null;
-  // agrega otros campos si tienes
-}
-
-const baseURL =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://greenpark-backend-0ua6.onrender.com';
+import { useParams } from "react-router-dom";
+import EditCourse from "./EditCourse"; // Asegúrate de que la ruta sea correcta
 
 const EditCourseWrapper = () => {
+  // Obtenemos el ID del curso de los parámetros de la URL
   const { id } = useParams<{ id: string }>();
-  const [curso, setCurso] = useState<Curso | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
-  // Obtener token antes para evitar recargas innecesarias
-  const token = localStorage.getItem("token");
+  // Si no hay ID, podríamos mostrar un mensaje o redirigir.
+  // EditCourse ya maneja la lógica de carga y errores internamente,
+  // por lo que este wrapper solo necesita asegurarse de que el ID exista.
+  if (!id) {
+    return <p className="text-red-600 text-center mt-8">Error: ID de curso no proporcionado.</p>;
+  }
 
-  useEffect(() => {
-    if (!id) return;
-
-    if (!token) {
-      setError("No estás autenticado. Por favor, inicia sesión.");
-      setLoading(false);
-      // Si quieres redirigir al login automáticamente:
-      // navigate('/login');
-      return;
-    }
-
-    setLoading(true);
-    axios
-      .get(`${baseURL}/api/cursos/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        setCurso(res.data);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("No se pudo cargar el curso. Verifica tu sesión o el ID.");
-        setCurso(null);
-      })
-      .finally(() => setLoading(false));
-  }, [id, token, navigate]);
-
-  if (loading) return <p>Cargando curso...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!curso) return <p>Curso no encontrado</p>;
-
-  return <EditCourse cursoId={id!} cursoInicial={curso} />;
+  // Simplemente renderizamos EditCourse y le pasamos el ID.
+  // EditCourse se encargará de cargar los datos y mostrar el formulario.
+  return <EditCourse cursoId={id} />;
 };
 
 export default EditCourseWrapper;

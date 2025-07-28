@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import fondoInicio from './assets/fondo-inicio.jpg'; 
 import axios from 'axios';
 
+
 const baseURL =
   window.location.hostname === "localhost"
     ? "http://localhost:3000"
@@ -144,9 +145,12 @@ const Login: React.FC = () => {
           <p className="text-center text-lg">
             Accede a tu cuenta para continuar tu aprendizaje en sostenibilidad y desarrollo verde
           </p>
-          <button className="mt-8 px-6 py-2 border-2 border-white rounded-md hover:bg-white hover:text-[#1A3D33] transition-colors">
+          <Link
+            to="/cursos"
+            className="mt-8 inline-block px-6 py-2 border-2 border-white rounded-md hover:bg-white hover:text-[#1A3D33] transition-colors"
+          >
             Explorar cursos
-          </button>
+          </Link>
         </div>
       </div>
     </div>
