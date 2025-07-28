@@ -179,7 +179,7 @@ const Courses = () => {
                             error
                           );
                           alert(
-                            "No se pudo registrar la participación. Intenta de nuevo."
+                            "No se pudo registrar la participación. porfavor inicie sesion."
                           );
                         }
                       }}
