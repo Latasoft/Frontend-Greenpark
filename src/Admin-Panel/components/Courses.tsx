@@ -71,20 +71,28 @@ const Courses: React.FC = () => {
     fetchCursos();
   }, []);
 
-  const handlePublicarCurso = async (id: string) => {
-    setAccionandoId(id);
-    try {
-      const response = await fetch(`${baseURL}/api/cursos/${id}/publicar`, {
-        method: 'PUT',
-      });
-      if (!response.ok) throw new Error('Error al publicar el curso');
-      await fetchCursos();
-    } catch {
-      alert('Error al publicar curso');
-    } finally {
-      setAccionandoId(null);
-    }
-  };
+const handlePublicarCurso = async (cursoId: string) => {
+  setAccionandoId(cursoId);
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Token no encontrado');
+
+    const response = await fetch(`${baseURL}/api/cursos/${cursoId}/publicar`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) throw new Error('Error al publicar el curso');
+    await fetchCursos();
+  } catch {
+    alert('Error al publicar curso');
+  } finally {
+    setAccionandoId(null);
+  }
+};
 
   const handleEliminarCurso = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este curso? Esta acción no se puede deshacer.')) return;
