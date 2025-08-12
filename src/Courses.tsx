@@ -7,6 +7,17 @@ const baseURL =
     ? "http://localhost:3000"
     : "https://greenpark-backend-0ua6.onrender.com";
 
+interface Curso {
+  id: string;
+  titulo: string;
+  imagen?: string;
+  imagenUrl?: string; // en caso que venga con ese nombre
+  duracionHoras?: number;
+  herramientas?: string[];
+  loAprenderan?: string[];
+  dirigidoA?: string;
+}
+
 const Courses = () => {
   const { tipo } = useParams<{ tipo?: string }>();
   const location = useLocation();
@@ -15,7 +26,7 @@ const Courses = () => {
   const searchParams = new URLSearchParams(location.search);
   const destacados = searchParams.get("destacados");
 
-  const [cursos, setCursos] = useState<any[]>([]);
+  const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,8 +61,20 @@ const Courses = () => {
         }
 
         const res = await axios.get(url);
-        // Ajusta según estructura de la respuesta
-        setCursos(res.data.cursos || res.data);
+
+        // Normalizar campos para cada curso:
+        const cursosNormalizados: Curso[] = (res.data.cursos || res.data).map(
+          (curso: any) => ({
+            ...curso,
+            imagen: curso.imagen || curso.imagenUrl || "",
+            duracionHoras: curso.duracionHoras ?? 0,
+            herramientas: curso.herramientas || [],
+            loAprenderan: curso.loAprenderan || [],
+            dirigidoA: curso.dirigidoA || "General",
+          })
+        );
+
+        setCursos(cursosNormalizados);
       } catch (err) {
         setError("Error al cargar cursos");
       } finally {
@@ -81,7 +104,7 @@ const Courses = () => {
           className="absolute inset-0"
           style={{ backgroundColor: "#1A3D33", opacity: "0.85" }}
         ></div>
-        <div className="relative w-full text-center">
+        <div className="relative w-full text-center px-4">
           <h1 className="text-[32px] text-white font-bold mb-4 capitalize">
             {destacados === "true"
               ? "Cursos Destacados"
@@ -118,7 +141,7 @@ const Courses = () => {
                       {curso.dirigidoA || "General"}
                     </span>
                     <img
-                      src={curso.imagenUrl}
+                      src={curso.imagen}
                       alt={curso.titulo}
                       className="w-full h-48 object-cover"
                     />
@@ -137,7 +160,9 @@ const Courses = () => {
                         Herramientas:
                       </h4>
                       <p className="text-sm text-gray-600">
-                        {curso.herramientas?.join(", ") || "No especificado"}
+                        {curso.herramientas?.length
+                          ? curso.herramientas.join(", ")
+                          : "No especificado"}
                       </p>
                     </div>
                     <div className="mb-4">
@@ -146,11 +171,9 @@ const Courses = () => {
                       </h4>
                       <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
                         {curso.loAprenderan?.length ? (
-                          curso.loAprenderan.map(
-                            (item: string, index: number) => (
-                              <li key={index}>{item}</li>
-                            )
-                          )
+                          curso.loAprenderan.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))
                         ) : (
                           <li>No especificado</li>
                         )}
@@ -179,7 +202,7 @@ const Courses = () => {
                             error
                           );
                           alert(
-                            "No se pudo registrar la participación. porfavor inicie sesion."
+                            "No se pudo registrar la participación. Por favor inicie sesión."
                           );
                         }
                       }}

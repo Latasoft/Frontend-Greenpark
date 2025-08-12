@@ -1,719 +1,467 @@
 import { useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 
-interface Enlace {
-  nombre: string;
-  url: string;
-}
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
 
-interface Pregunta {
-  pregunta: string;
-  opciones: string[];
-  respuestaCorrecta: number;
+interface Quiz {
+  preguntas: any[]; // Puedes mejorar el tipado cuando definas la estructura exacta
 }
 
 interface Modulo {
-  nombre: string;
+  titulo: string;
   descripcion: string;
-  enlaces: Enlace[];
-  quiz?: {
-    preguntas: Pregunta[];
-  };
+  enlaces: any[];
+  quiz: Quiz;
+  archivos: File[];
 }
 
-const CrearCurso = () => {
+const CourseCreator = () => {
   const [titulo, setTitulo] = useState("");
   const [imagen, setImagen] = useState<File | null>(null);
-  const [herramientas, setHerramientas] = useState<string[]>([]);
-  const [loAprenderan, setLoAprenderan] = useState<string[]>([]);
-  const [duracionHoras, setDuracionHoras] = useState<number>(0);
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
   const [bienvenida, setBienvenida] = useState("");
-  const [modulos, setModulos] = useState<Modulo[]>([
-    { nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } },
-  ]);
-  const [archivosModulo, setArchivosModulo] = useState<File[]>([]);
+  const [duracionHoras, setDuracionHoras] = useState<number | "">("");
+  const [dirigidoA, setDirigidoA] = useState("comunidad");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaTermino, setFechaTermino] = useState("");
-  const [dirigidoA, setDirigidoA] = useState("");
+  const [herramientas, setHerramientas] = useState<string[]>([]);
   const [herramientaInput, setHerramientaInput] = useState("");
-  const [loAprenderanInput, setLoAprenderanInput] = useState("");
-  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
-  const [quizIndex, setQuizIndex] = useState<number | null>(null);
-  const [preguntasTemp, setPreguntasTemp] = useState<Pregunta[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loAprenderan, setLoAprenderan] = useState<string[]>([]);
+  const [aprenderInput, setAprenderInput] = useState("");
+  const [modulos, setModulos] = useState<Modulo[]>([]);
 
+  const [loading, setLoading] = useState(false);
 
+  // --- Handlers ---
 
-  const [nuevaPregunta, setNuevaPregunta] = useState("");
-  const [nuevasOpciones, setNuevasOpciones] = useState<string[]>(["", ""]);
-  const [respuestaCorrectaTemp, setRespuestaCorrectaTemp] = useState<number>(0);
-
-  // Manejo archivos e imagen
-  const handleImagenChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setImagen(e.target.files[0]);
+  const handleImagenChange = (file: File | null) => {
+    setImagen(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagenPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagenPreview(null);
     }
   };
 
-  const handleArchivosModuloChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setArchivosModulo(Array.from(e.target.files));
-    }
-  };
-
-  // Manejo módulos
-  const agregarModulo = () => {
-    setModulos([
-      ...modulos,
-      { nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } },
+  const handleAgregarModulo = () => {
+    setModulos((prev) => [
+      ...prev,
+      { titulo: "", descripcion: "", enlaces: [], quiz: { preguntas: [] }, archivos: [] },
     ]);
   };
 
-  const cambiarModulo = (
+  const handleModuloChange = (
     index: number,
-    field: keyof Modulo,
-    value: string | Enlace[] | { preguntas: Pregunta[] }
-  ) => {
-    const nuevosModulos = [...modulos];
-    nuevosModulos[index][field] = value as any;
-    setModulos(nuevosModulos);
-  };
-
-  // Manejo enlaces por módulo
-  const cambiarEnlaceModulo = (
-    moduloIndex: number,
-    enlaceIndex: number,
-    field: keyof Enlace,
+    field: "titulo" | "descripcion",
     value: string
   ) => {
-    const nuevosModulos = [...modulos];
-    if (!nuevosModulos[moduloIndex].enlaces[enlaceIndex]) {
-      nuevosModulos[moduloIndex].enlaces[enlaceIndex] = { nombre: "", url: "" };
-    }
-    nuevosModulos[moduloIndex].enlaces[enlaceIndex][field] = value;
-    setModulos(nuevosModulos);
+    setModulos((prev) => {
+      const nuevos = [...prev];
+      nuevos[index][field] = value;
+      return nuevos;
+    });
   };
 
-  // URL base dinámica según entorno
-  const baseURL =
-    window.location.hostname === "localhost"
-      ? "http://localhost:3000"
-      : "https://greenpark-backend-0ua6.onrender.com";
+  const handleFileChange = (index: number, files: FileList | null) => {
+    setModulos((prev) => {
+      const nuevos = [...prev];
+      nuevos[index].archivos = files ? Array.from(files) : [];
+      return nuevos;
+    });
+  };
 
-  // Enviar formulario con axios
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const agregarHerramienta = () => {
+    const value = herramientaInput.trim();
+    if (value && !herramientas.includes(value)) {
+      setHerramientas((prev) => [...prev, value]);
+      setHerramientaInput("");
+    }
+  };
 
-    // ⬇️ Activa el spinner y desactiva el botón
-    setIsSubmitting(true);
+  const eliminarHerramienta = (item: string) => {
+    setHerramientas((prev) => prev.filter((h) => h !== item));
+  };
 
-    if (!titulo.trim()) {
-      alert("El título es obligatorio");
-      setIsSubmitting(false);
-      return;
+  const agregarAprender = () => {
+    const value = aprenderInput.trim();
+    if (value && !loAprenderan.includes(value)) {
+      setLoAprenderan((prev) => [...prev, value]);
+      setAprenderInput("");
+    }
+  };
+
+  const eliminarAprender = (item: string) => {
+    setLoAprenderan((prev) => prev.filter((l) => l !== item));
+  };
+
+  const validarFormulario = (): boolean => {
+    if (duracionHoras === "" || duracionHoras < 0) {
+      alert("Por favor ingresa una duración válida.");
+      return false;
     }
     if (!imagen) {
-      alert("La imagen es obligatoria");
-      setIsSubmitting(false);
-      return;
+      alert("La imagen del curso es obligatoria.");
+      return false;
     }
+    if (!titulo.trim()) {
+      alert("El título del curso es obligatorio.");
+      return false;
+    }
+    if (fechaInicio && fechaTermino && fechaInicio > fechaTermino) {
+      alert("La fecha de inicio no puede ser mayor que la fecha de término.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validarFormulario()) return;
+
+    setLoading(true);
 
     const formData = new FormData();
-    formData.append("titulo", titulo);
-    formData.append("imagen", imagen);
-    formData.append("herramientas", JSON.stringify(herramientas));
-    formData.append("loAprenderan", JSON.stringify(loAprenderan));
+    formData.append("titulo", titulo.trim());
+    if (imagen) formData.append("imagen", imagen);
+    formData.append("bienvenida", bienvenida.trim());
     formData.append("duracionHoras", duracionHoras.toString());
-    formData.append("bienvenida", bienvenida);
-    formData.append("modulos", JSON.stringify(modulos));
+    formData.append("dirigidoA", dirigidoA);
     formData.append("fechaInicio", fechaInicio);
     formData.append("fechaTermino", fechaTermino);
-    formData.append("dirigidoA", dirigidoA);
+    formData.append("herramientas", JSON.stringify(herramientas));
+    formData.append("loAprenderan", JSON.stringify(loAprenderan));
 
-    archivosModulo.forEach((file) => {
-      formData.append("archivosModulo", file);
+    const modulosSinArchivos = modulos.map(({ archivos, ...rest }) => rest);
+    formData.append("modulos", JSON.stringify(modulosSinArchivos));
+
+    modulos.forEach((modulo, i) => {
+      modulo.archivos.forEach((archivo) => {
+        formData.append(`archivosModulo_${i}`, archivo);
+      });
     });
 
-    const token = localStorage.getItem("token");
-
     try {
-      await axios.post(`${baseURL}/api/cursos`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+      const res = await axios.post(`${baseURL}/api/cursos`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+      alert("Curso creado exitosamente.");
+      console.log("Curso creado:", res.data);
 
-      alert("Curso creado con éxito");
-
-      // Reset formulario (opcional)
+      // Resetear formulario
       setTitulo("");
       setImagen(null);
-      setHerramientas([]);
-      setLoAprenderan([]);
-      setDuracionHoras(0);
+      setImagenPreview(null);
       setBienvenida("");
-      setModulos([{ nombre: "", descripcion: "", enlaces: [], quiz: { preguntas: [] } }]);
-      setArchivosModulo([]);
+      setDuracionHoras("");
+      setDirigidoA("comunidad");
       setFechaInicio("");
       setFechaTermino("");
-      setDirigidoA("");
-    } catch (error: any) {
-      if (error.response) {
-        alert("Error: " + error.response.data);
-      } else {
-        alert("Error al crear curso");
-      }
-      console.error(error);
+      setHerramientas([]);
+      setHerramientaInput("");
+      setLoAprenderan([]);
+      setAprenderInput("");
+      setModulos([]);
+    } catch (error) {
+      console.error("Error al crear curso:", error);
+      alert("Hubo un error al crear el curso.");
     } finally {
-      // ⬇️ Desactiva el spinner y vuelve a habilitar el botón
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-
-  const finalizarQuiz = () => {
-    if (quizIndex === null) return;
-
-    const nuevosModulos = [...modulos];
-    nuevosModulos[quizIndex].quiz = { preguntas: preguntasTemp };
-    setModulos(nuevosModulos);
-
-    setPreguntasTemp([]);
-    setQuizIndex(null);
-    setIsQuizModalOpen(false);
-  };
-
-
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="h-[calc(100vh-8rem)] overflow-y-auto">
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-[#1A3D33] mb-6">Nuevo Curso</h2>
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-4xl mx-auto p-8 space-y-8 bg-white rounded-2xl shadow-lg border border-green-100"
+    >
+      <h2 className="text-3xl font-bold text-green-700 border-b pb-4">
+        Crear Nuevo Curso
+      </h2>
 
-            <div className="space-y-6">
-              {/* Información del Curso */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">Información del curso</h3>
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Título del Curso</label>
-                    <input
-                      type="text"
-                      value={titulo}
-                      onChange={(e) => setTitulo(e.target.value)}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52] outline-none"
-                      placeholder="Ingrese título del curso"
-                    />
-                  </div>
+      {/* Título */}
+      <input
+        type="text"
+        placeholder="Título del curso"
+        value={titulo}
+        onChange={(e) => setTitulo(e.target.value)}
+        className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none disabled:opacity-50"
+        required
+        disabled={loading}
+      />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Curso</label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-[#8BAE52] focus-within:border-[#8BAE52] focus-within:bg-[#8BAE52]/5">
-                      <div className="space-y-1 text-center">
-                        <svg
-                          className="mx-auto h-12 w-12 text-gray-400"
-                          stroke="currentColor"
-                          fill="none"
-                          viewBox="0 0 48 48"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <div className="flex text-sm text-gray-600 justify-center items-center">
-                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#8BAE52] hover:text-[#1A3D33] focus-within:outline-none">
-                            <span>Subir archivo</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              required
-                              onChange={handleImagenChange}
-                              className="sr-only"
-                            />
-
-
-                          </label>
-                          <span className="pl-1">o arrastrar y soltar</span>
-                        </div>
-                        <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                        {imagen && (
-                          <p className="mt-2 text-sm text-gray-600">Archivo seleccionado: <span className="font-medium">{imagen.name}</span></p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Herramientas</label>
-                    <div className="flex flex-wrap items-center gap-2 border border-gray-300 rounded-md p-2 min-h-[42px]">
-                      {herramientas.map((herr, idx) => (
-                        <span key={idx} className="bg-[#8BAE52] text-white px-2 py-1 rounded-full text-sm flex items-center">
-                          {herr}
-                          <button
-                            type="button"
-                            onClick={() => setHerramientas(herramientas.filter((_, i) => i !== idx))}
-                            className="ml-2 font-bold hover:text-red-200"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                      <input
-                        type="text"
-                        value={herramientaInput}
-                        onChange={(e) => setHerramientaInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && herramientaInput.trim()) {
-                            e.preventDefault();
-                            if (!herramientas.includes(herramientaInput.trim())) {
-                              setHerramientas([...herramientas, herramientaInput.trim()]);
-                            }
-                            setHerramientaInput("");
-                          }
-                        }}
-                        placeholder="Presiona Enter para agregar"
-                        className="flex-1 px-2 outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Aprenderás</label>
-                    <div className="flex flex-wrap items-center gap-2 border border-gray-300 rounded-md p-2 min-h-[42px]">
-                      {loAprenderan.map((item, idx) => (
-                        <span key={idx} className="bg-[#8BAE52] text-white px-2 py-1 rounded-full text-sm flex items-center">
-                          {item}
-                          <button
-                            type="button"
-                            onClick={() => setLoAprenderan(loAprenderan.filter((_, i) => i !== idx))}
-                            className="ml-2 font-bold hover:text-red-200"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                      <input
-                        type="text"
-                        value={loAprenderanInput}
-                        onChange={(e) => setLoAprenderanInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && loAprenderanInput.trim()) {
-                            e.preventDefault();
-                            if (!loAprenderan.includes(loAprenderanInput.trim())) {
-                              setLoAprenderan([...loAprenderan, loAprenderanInput.trim()]);
-                            }
-                            setLoAprenderanInput("");
-                          }
-                        }}
-                        placeholder="Presiona Enter para agregar"
-                        className="flex-1 px-2 outline-none"
-                      />
-                    </div>
-                  </div>
-
-
-
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Duración (horas)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={duracionHoras}
-                      onChange={(e) => setDuracionHoras(Number(e.target.value))}
-                      className="w-32 px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                      placeholder="40"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bienvenida */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">Bienvenida al Curso</h3>
-                <textarea
-                  value={bienvenida}
-                  onChange={(e) => setBienvenida(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                  placeholder="Escribe un mensaje de bienvenida..."
-                />
-              </div>
-
-              {/* Módulos */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">Módulos del Curso</h3>
-                <div className="space-y-6">
-                  {modulos.map((modulo, i) => (
-                    <div key={i} className="bg-white p-4 rounded-lg shadow space-y-4">
-                      <input
-                        type="text"
-                        placeholder="Nombre del módulo"
-                        value={modulo.nombre}
-                        onChange={(e) => cambiarModulo(i, "nombre", e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                      />
-                      <textarea
-                        placeholder="Descripción del módulo"
-                        value={modulo.descripcion}
-                        onChange={(e) => cambiarModulo(i, "descripcion", e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none resize-none"
-                        rows={4}
-                      />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          placeholder="Título del enlace"
-                          value={modulo.enlaces[0]?.nombre || ""}
-                          onChange={(e) => cambiarEnlaceModulo(i, 0, "nombre", e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                        />
-                        <input
-                          type="url"
-                          placeholder="URL del enlace"
-                          value={modulo.enlaces[0]?.url || ""}
-                          onChange={(e) => cambiarEnlaceModulo(i, 0, "url", e.target.value)}
-                          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                        />
-                      </div>
-
-                      {/* Quiz */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQuizIndex(i);
-                          setPreguntasTemp(modulos[i].quiz?.preguntas || []);
-                          setIsQuizModalOpen(true);
-                        }}
-                        className="text-[#8BAE52] hover:text-[#1A3D33] font-medium"
-                      >
-                        + Agregar Quiz
-                      </button>
-
-
-                    </div>
-                  ))}
-
-                  <div className="flex gap-4 items-center mt-4">
-
-
-                    <div className="relative w-fit">
-                      <input
-                        id="file-upload"
-                        type="file"
-                        multiple
-                        onChange={handleArchivosModuloChange}
-                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      />
-                      <button
-                        type="button"
-                        className="bg-[#1A3D33] text-white px-4 py-2 rounded-md hover:bg-[#152f27]"
-                        onClick={() => document.getElementById("file-upload")?.click()}
-                      >
-                        Adjuntar Archivos
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={agregarModulo}
-                      className="text-[#8BAE52] hover:text-[#1A3D33] font-medium"
-                    >
-                      + Agregar nuevo módulo
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-
-              {/* Configuración */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">Configuración del curso</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio</label>
-                    <input
-                      type="date"
-                      value={fechaInicio}
-                      onChange={(e) => setFechaInicio(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Término</label>
-                    <input
-                      type="date"
-                      value={fechaTermino}
-                      onChange={(e) => setFechaTermino(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                    />
-                  </div>
-                  <div className="md:col-span-2 mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Dirigido a
-                    </label>
-
-                    <select
-                      value={dirigidoA}
-                      onChange={(e) => setDirigidoA(e.target.value)}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#8BAE52] focus:border-[#8BAE52] outline-none"
-                    >
-                      <option value="">Seleccione una opción</option>
-                      <option value="docente">Docente</option>
-                      <option value="estudiante">Estudiante</option>
-                      <option value="comunidad">Comunidad</option>
-                    </select>
-                  </div>
-
-
-
-                </div>
-              </div>
-
-
-
-
-              {/* Botones */}
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-6 py-2 rounded-md text-white transition-colors duration-200 ${
-                    isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-[#8BAE52] hover:bg-[#1A3D33]'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        />
-                      </svg>
-                      Creando...
-                    </div>
-                  ) : (
-                    'Crear Curso'
-                  )}
-                </button>
-
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        {isQuizModalOpen && quizIndex !== null && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Fondo oscuro que cierra el modal al hacer clic */}
-            <div
-              className="absolute inset-0 bg-black opacity-50"
-              onClick={() => setIsQuizModalOpen(false)}
-            ></div>
-
-            {/* Contenido del modal */}
-            <div
-              className="relative bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()} // Evita que el clic cierre el modal
-            >
-              {/* Botón de cerrar */}
-              <button
-                onClick={() => setIsQuizModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-
-              <h2 className="text-2xl font-bold mb-4">Crear Quiz</h2>
-
-              {/* Lista de preguntas agregadas */}
-              {preguntasTemp.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Preguntas Añadidas:</h3>
-                  {preguntasTemp.map((q, index) => (
-                    <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg relative">
-                      <button
-                        onClick={() =>
-                          setPreguntasTemp((prev) => prev.filter((_, i) => i !== index))
-                        }
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      >
-                        ✕
-                      </button>
-                      <p className="font-medium">Pregunta {index + 1}: {q.pregunta}</p>
-                      <ul className="ml-4 mt-2">
-                        {q.opciones.map((opt, idx) => (
-                          <li
-                            key={idx}
-                            className={idx === q.respuestaCorrecta ? "text-[#8BAE52]" : ""}
-                          >
-                            • {opt} {idx === q.respuestaCorrecta && "(Correcta)"}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Formulario para agregar preguntas */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-
-                  if (!nuevaPregunta.trim() || nuevasOpciones.some((op) => !op.trim())) {
-                    alert("Completa todos los campos");
-                    return;
-                  }
-
-                  const nueva: Pregunta = {
-                    pregunta: nuevaPregunta.trim(),
-                    opciones: nuevasOpciones,
-                    respuestaCorrecta: respuestaCorrectaTemp,
-                  };
-
-                  setPreguntasTemp((prev) => [...prev, nueva]);
-                  setNuevaPregunta("");
-                  setNuevasOpciones(["", ""]);
-                  setRespuestaCorrectaTemp(0);
-                }}
-                className="space-y-4 pb-10"
-              >
-                {/* Campo de nueva pregunta */}
-                <div className="space-y-4 pb-10">
-                  {/* Campo de nueva pregunta */}
-                  <div>
-                    <label className="block mb-2">Nueva Pregunta:</label>
-                    <input
-                      type="text"
-                      value={nuevaPregunta}
-                      onChange={(e) => setNuevaPregunta(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                      required
-                    />
-                  </div>
-
-                  {/* Opciones de respuesta */}
-                  <div className="space-y-3">
-                    <label className="block mb-2">Opciones:</label>
-                    {nuevasOpciones.map((opt, idx) => (
-                      <div key={idx} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={opt}
-                          onChange={(e) => {
-                            const updated = [...nuevasOpciones];
-                            updated[idx] = e.target.value;
-                            setNuevasOpciones(updated);
-                          }}
-                          className="flex-1 p-2 border rounded-md"
-                          placeholder={`Opción ${idx + 1}`}
-                          required
-                        />
-                        <input
-                          type="radio"
-                          name="correctAnswer"
-                          checked={respuestaCorrectaTemp === idx}
-                          onChange={() => setRespuestaCorrectaTemp(idx)}
-                        />
-                        <span>Correcta</span>
-                        {nuevasOpciones.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newOptions = nuevasOpciones.filter((_, i) => i !== idx);
-                              setNuevasOpciones(newOptions);
-                              if (respuestaCorrectaTemp === idx) {
-                                setRespuestaCorrectaTemp(0);
-                              }
-                            }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Botones */}
-                  <div className="flex items-center justify-between pt-4">
-                    <div className="flex space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setNuevasOpciones([...nuevasOpciones, ""])}
-                        className="bg-[#1A3D33] text-white px-4 py-2 rounded hover:bg-[#152f27]"
-                      >
-                        Agregar Opción
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!nuevaPregunta.trim() || nuevasOpciones.some((op) => !op.trim())) {
-                            alert("Completa todos los campos");
-                            return;
-                          }
-
-                          const nueva: Pregunta = {
-                            pregunta: nuevaPregunta.trim(),
-                            opciones: nuevasOpciones,
-                            respuestaCorrecta: respuestaCorrectaTemp,
-                          };
-
-                          setPreguntasTemp((prev) => [...prev, nueva]);
-                          setNuevaPregunta("");
-                          setNuevasOpciones(["", ""]);
-                          setRespuestaCorrectaTemp(0);
-                        }}
-                        className="bg-[#8BAE52] text-white px-4 py-2 rounded hover:bg-[#7a9947]"
-                      >
-                        Agregar Pregunta
-                      </button>
-                    </div>
-
-                    {preguntasTemp.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={finalizarQuiz}
-                        className="bg-[#1A3D33] text-white px-4 py-2 rounded hover:bg-[#152f27] border-4 border-red-500"
-                      >
-                        Finalizar Quiz
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-              </form>
-            </div>
-          </div>
+      {/* Imagen y preview */}
+      <div>
+        <label className="block text-green-700 font-semibold mb-2">
+          Imagen del curso
+        </label>
+        {imagenPreview && (
+          <img
+            src={imagenPreview}
+            alt="Vista previa"
+            className="w-full h-64 object-cover rounded-xl border mb-4"
+          />
         )}
-
-
-
+        <label
+          htmlFor="input-imagen"
+          className={`inline-block cursor-pointer bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition select-none ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          Seleccionar imagen
+        </label>
+        <input
+          id="input-imagen"
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleImagenChange(e.target.files?.[0] || null)}
+          className="hidden"
+          required
+          disabled={loading}
+        />
       </div>
+
+      {/* Bienvenida */}
+      <textarea
+        placeholder="Mensaje de bienvenida"
+        value={bienvenida}
+        onChange={(e) => setBienvenida(e.target.value)}
+        className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none disabled:opacity-50"
+        disabled={loading}
+      />
+
+      {/* Duración */}
+      <input
+        type="number"
+        min={0}
+        placeholder="Duración en horas"
+        value={duracionHoras}
+        onChange={(e) => {
+          const val = e.target.value;
+          setDuracionHoras(val === "" ? "" : Number(val));
+        }}
+        className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none disabled:opacity-50"
+        disabled={loading}
+      />
+
+      {/* Dirigido a */}
+      <select
+        value={dirigidoA}
+        onChange={(e) => setDirigidoA(e.target.value)}
+        className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none disabled:opacity-50"
+        disabled={loading}
+      >
+        <option value="comunidad">Comunidad</option>
+        <option value="estudiante">Estudiante</option>
+        <option value="docente">Docente</option>
+      </select>
+
+      {/* Fechas */}
+      <div className="flex gap-4">
+        <input
+          type="date"
+          value={fechaInicio}
+          onChange={(e) => setFechaInicio(e.target.value)}
+          className="border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none w-1/2 disabled:opacity-50"
+          disabled={loading}
+        />
+        <input
+          type="date"
+          value={fechaTermino}
+          onChange={(e) => setFechaTermino(e.target.value)}
+          className="border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none w-1/2 disabled:opacity-50"
+          disabled={loading}
+        />
+      </div>
+
+      {/* Herramientas */}
+      <div>
+        <label className="block font-semibold text-green-700 mb-2">Herramientas</label>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="text"
+            value={herramientaInput}
+            onChange={(e) => setHerramientaInput(e.target.value)}
+            className="flex-grow border border-green-300 p-2 rounded-lg outline-none disabled:opacity-50"
+            placeholder="Agregar herramienta"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                agregarHerramienta();
+              }
+            }}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            onClick={agregarHerramienta}
+            className={`px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            +
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {herramientas.map((h) => (
+            <span
+              key={h}
+              className="bg-green-200 text-green-900 px-3 py-1 rounded-full cursor-pointer select-none"
+              onClick={() => !loading && eliminarHerramienta(h)}
+              title="Eliminar"
+            >
+              {h} &times;
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Lo aprenderán */}
+      <div>
+        <label className="block font-semibold text-green-700 mb-2">Lo aprenderán</label>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="text"
+            value={aprenderInput}
+            onChange={(e) => setAprenderInput(e.target.value)}
+            className="flex-grow border border-green-300 p-2 rounded-lg outline-none disabled:opacity-50"
+            placeholder="Agregar elemento"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                agregarAprender();
+              }
+            }}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            onClick={agregarAprender}
+            className={`px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            +
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {loAprenderan.map((l) => (
+            <span
+              key={l}
+              className="bg-green-200 text-green-900 px-3 py-1 rounded-full cursor-pointer select-none"
+              onClick={() => !loading && eliminarAprender(l)}
+              title="Eliminar"
+            >
+              {l} &times;
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Módulos */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-green-700">Módulos</h3>
+        {modulos.map((modulo, index) => (
+          <div
+            key={index}
+            className="border border-green-200 bg-green-50 p-4 rounded-xl shadow-sm space-y-3"
+          >
+            <input
+              type="text"
+              placeholder="Título del módulo"
+              value={modulo.titulo}
+              onChange={(e) => handleModuloChange(index, "titulo", e.target.value)}
+              className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-2 rounded-lg outline-none disabled:opacity-50"
+              disabled={loading}
+            />
+            <textarea
+              placeholder="Descripción del módulo"
+              value={modulo.descripcion}
+              onChange={(e) => handleModuloChange(index, "descripcion", e.target.value)}
+              className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-2 rounded-lg outline-none disabled:opacity-50"
+              disabled={loading}
+            />
+
+            {/* Botón para subir archivos */}
+            <label
+              htmlFor={`input-archivos-${index}`}
+              className={`inline-block cursor-pointer bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition select-none ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              Subir archivos
+            </label>
+            <input
+              id={`input-archivos-${index}`}
+              type="file"
+              multiple
+              onChange={(e) => handleFileChange(index, e.target.files)}
+              className="hidden"
+              disabled={loading}
+            />
+
+            {/* Lista de archivos seleccionados */}
+            {modulo.archivos.length > 0 && (
+              <ul className="mt-2 list-disc list-inside text-sm text-gray-700">
+                {modulo.archivos.map((file, i) => (
+                  <li key={i}>{file.name}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={handleAgregarModulo}
+          className={`px-6 py-2 bg-green-600 text-white rounded-full shadow hover:bg-green-700 transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={loading}
+        >
+          + Agregar Módulo
+        </button>
+      </div>
+
+      <button
+        type="submit"
+        className={`w-full bg-green-600 text-white py-3 rounded-full font-semibold hover:bg-green-700 transition flex justify-center items-center gap-2 ${
+          loading ? "cursor-not-allowed opacity-50" : ""
+        }`}
+        disabled={loading}
+      >
+        {loading && (
+          <svg
+            className="animate-spin h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+        )}
+        {loading ? "Creando..." : "Crear Curso"}
+      </button>
     </form>
-
-
   );
 };
-export default CrearCurso;
+
+export default CourseCreator;
