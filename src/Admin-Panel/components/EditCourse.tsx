@@ -213,7 +213,9 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
         },
       });
 
-      alert("Curso actualizado con éxito");
+      if (window.confirm("Curso actualizado con éxito")) {
+        window.location.reload();
+      }
     } catch (error: any) {
       console.error("Error actualizando curso:", error);
       if (error.response?.status === 401) {
