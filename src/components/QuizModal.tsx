@@ -1,19 +1,65 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://greenpark-backend-0ua6.onrender.com";
+
+interface OpcionQuiz {
+  texto: string;
+  correcta?: boolean;
+}
+
+interface Pregunta {
+  texto: string;
+  opciones: OpcionQuiz[] | string[];
+  respuestaCorrecta: number | string;
+}
+
+interface Quiz {
+  preguntas: Pregunta[];
+}
+
+interface RespuestaPregunta {
+  pregunta: string;
+  respuestaUsuario: number;
+  esCorrecta: boolean;
+}
 
 interface QuizModalProps {
   isOpen: boolean;
   onClose: () => void;
   onQuizComplete: (passed: boolean, score: number) => void;
   initialScore: number;
+  quiz?: Quiz;
+  cursoId?: string;
+  moduloIndex?: number;
 }
 
-const QuizModal = ({ isOpen, onClose, onQuizComplete, initialScore }: QuizModalProps) => {
+const QuizModal = ({ 
+  isOpen, 
+  onClose, 
+  onQuizComplete, 
+  initialScore, 
+  quiz, 
+  cursoId, 
+  moduloIndex 
+}: QuizModalProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(initialScore);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
-
-  const questions = [
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use default questions if no quiz is provided
+  const questions = quiz?.preguntas ? quiz.preguntas.map(p => ({
+    question: p.texto,
+    options: Array.isArray(p.opciones) ? 
+      p.opciones.map(opt => typeof opt === 'string' ? opt : opt.texto) : [],
+    correctAnswer: Number(p.respuestaCorrecta)
+  })) : [
     {
       question: "¿Qué es el aprendizaje automático (Machine Learning)?",
       options: [
@@ -71,11 +117,106 @@ const QuizModal = ({ isOpen, onClose, onQuizComplete, initialScore }: QuizModalP
       setScore(initialScore);
       setShowResults(false);
       setCurrentQuestion(0);
+      setAnswers([]);
+      setError(null);
     }
   }, [isOpen, initialScore]);
 
-  const handleSaveAndClose = () => {
+  // Guardar respuestas en el backend
+  const guardarRespuestasQuiz = async () => {
+    if (!cursoId || moduloIndex === undefined) return true;
+    
+    try {
+      setGuardando(true);
+      setError(null);
+      
+      // Obtener token y userData del localStorage
+      const token = localStorage.getItem("token");
+      const userDataStr = localStorage.getItem("userData");
+      
+      if (!token) {
+        console.error("No hay token de autenticación");
+        setError("No hay sesión activa. Inicie sesión nuevamente.");
+        return false;
+      }
+      
+      // Obtener el ID de usuario desde localStorage
+      let usuarioId = null;
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          usuarioId = userData.uid || userData.id;
+          console.log("ID de usuario obtenido:", usuarioId);
+        } catch (e) {
+          console.error("Error al parsear userData:", e);
+        }
+      }
+      
+      // Mapear las respuestas para enviarlas al backend
+      const respuestasPreguntas = questions.map((question, i) => ({
+        pregunta: question.question,
+        respuestaUsuario: answers[i] !== undefined ? answers[i] : 0,
+        esCorrecta: answers[i] === question.correctAnswer
+      }));
+
+      const porcentaje = Math.round((score / questions.length) * 100);
+      
+      // Definir la URL base
+      const baseURL =
+        window.location.hostname === "localhost"
+          ? "http://localhost:3000"
+          : "https://greenpark-backend-0ua6.onrender.com";
+      
+      // Construir el payload con todos los datos necesarios
+      const payload = {
+        cursoId,
+        moduloIndex,
+        respuestas: respuestasPreguntas,
+        porcentaje,
+        puntajeTotal: score,
+        totalPreguntas: questions.length,
+        usuarioId // Incluir el ID de usuario como fallback
+      };
+      
+      console.log("Enviando respuestas al servidor:", payload);
+      
+      // Hacer la petición al servidor con el token en las cabeceras
+      const response = await axios.post(
+        `${baseURL}/api/quiz/respuestas`,
+        payload,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("Respuestas guardadas:", response.data);
+      return true;
+    } catch (err: any) {
+      console.error("Error al guardar respuestas:", err);
+      let errorMsg = "Error al guardar las respuestas. Los resultados podrían no haberse registrado.";
+      
+      // Mostrar mensaje más específico si está disponible
+      if (err.response && err.response.data && err.response.data.mensaje) {
+        errorMsg = `Error: ${err.response.data.mensaje}`;
+      }
+      
+      setError(errorMsg);
+      return false;
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleSaveAndClose = async () => {
     const currentScore = (score / questions.length) * 100;
+    
+    if (cursoId && moduloIndex !== undefined) {
+      await guardarRespuestasQuiz();
+    }
+    
     onQuizComplete(currentScore >= 51, currentScore);
     onClose();
   };
@@ -85,16 +226,29 @@ const QuizModal = ({ isOpen, onClose, onQuizComplete, initialScore }: QuizModalP
     newAnswers[currentQuestion] = selectedOption;
     setAnswers(newAnswers);
 
-    if (selectedOption === questions[currentQuestion].correctAnswer) {
-      setScore(score + 1);
-    }
+    // Incrementar la puntuación si la respuesta es correcta
+    const newScore = selectedOption === questions[currentQuestion].correctAnswer ? 
+      score + 1 : score;
+    setScore(newScore);
 
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       setShowResults(true);
-      const passed = (score / questions.length) >= 0.51;
-      onQuizComplete(passed, score);
+      const finalScore = newScore; // Usar la nueva puntuación que acabamos de calcular
+      const passed = (finalScore / questions.length) >= 0.51;
+      
+      // Solo guardamos al final del quiz
+      if (cursoId && moduloIndex !== undefined) {
+        // Esperar a que todas las actualizaciones de estado se completen
+        setTimeout(() => {
+          guardarRespuestasQuiz().then(() => {
+            onQuizComplete(passed, finalScore);
+          });
+        }, 0);
+      } else {
+        onQuizComplete(passed, finalScore);
+      }
     }
   };
 
@@ -134,6 +288,13 @@ const QuizModal = ({ isOpen, onClose, onQuizComplete, initialScore }: QuizModalP
             <h2 className="text-2xl font-bold text-[#1A3D33] mb-4">
               Resultados
             </h2>
+            
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+            
             <p className="text-lg mb-4">
               Has acertado {score} de {questions.length} preguntas
             </p>
@@ -144,9 +305,12 @@ const QuizModal = ({ isOpen, onClose, onQuizComplete, initialScore }: QuizModalP
             </p>
             <button
               onClick={handleSaveAndClose}
-              className="bg-[#1A3D33] text-white px-6 py-2 rounded hover:bg-[#8BAE52]"
+              disabled={guardando}
+              className={`bg-[#1A3D33] text-white px-6 py-2 rounded hover:bg-[#8BAE52] ${
+                guardando ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Guardar progreso y cerrar
+              {guardando ? 'Guardando...' : 'Guardar progreso y cerrar'}
             </button>
           </div>
         )}

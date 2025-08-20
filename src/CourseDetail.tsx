@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import QuizModal from "./User-Panel/components/QuizModal";
+import CourseQuizModal from "./components/CourseQuizModal";
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -19,8 +19,8 @@ interface ArchivoModulo {
 }
 
 interface Pregunta {
-  pregunta: string;
-  opciones: string[];
+  texto: string; // Changed from pregunta to texto
+  opciones: string[]; // If OpcionQuiz is imported, use that type
   respuestaCorrecta: number;
 }
 
@@ -92,7 +92,14 @@ const CourseDetail = () => {
           archivosModulo: modulo.archivosModulo || modulo.archivos || [],
           quiz:
             modulo.quiz && modulo.quiz.preguntas?.length > 0
-              ? modulo.quiz
+              ? {
+                  ...modulo.quiz,
+                  preguntas: modulo.quiz.preguntas.map((preg: any) => ({
+                    texto: preg.texto ?? preg.pregunta ?? "",
+                    opciones: preg.opciones,
+                    respuestaCorrecta: preg.respuestaCorrecta,
+                  })),
+                }
               : undefined,
         }));
       } else {
@@ -115,12 +122,31 @@ const CourseDetail = () => {
     fetchCurso();
   }, [fetchCurso]);
 
-  const toggleModulo = (index: number) =>
-    setOpenModulo((prev) => (prev === index ? null : index));
+  // Update the toggleModulo function to show PDFs when a module is opened
+  const toggleModulo = (index: number) => {
+    const newValue = openModulo === index ? null : index;
+    setOpenModulo(newValue);
+
+    // Automatically show PDFs when opening a module
+    if (newValue !== null) {
+      setPdfVisibleModules((prev) => ({
+        ...prev,
+        [index]: true, // Make PDFs visible when opening a module
+      }));
+    }
+  };
 
   const handleAbrirQuiz = (index: number) => {
+    console.log("Opening quiz for module:", index);
     setQuizModuloIndex(index);
     setShowQuiz(true);
+
+    // Verify the quiz exists in this module
+    if (curso?.modulos[index]?.quiz) {
+      console.log("Quiz found:", curso.modulos[index].quiz);
+    } else {
+      console.error("No quiz found for this module!");
+    }
   };
 
   const handleCerrarQuiz = () => {
@@ -228,10 +254,11 @@ const CourseDetail = () => {
     }));
   };
 
+  // Replace the renderArchivosPDF function with this improved version
   const renderArchivosPDF = (modulo: Modulo, moduloIndex: number) => {
     if (!modulo.archivosModulo?.length) return null;
 
-    const isVisible = pdfVisibleModules[moduloIndex];
+    const isVisible = pdfVisibleModules[moduloIndex] !== false; // Default to true if undefined
 
     return (
       <div>
@@ -248,50 +275,67 @@ const CourseDetail = () => {
         {isVisible &&
           modulo.archivosModulo.map((archivo, archivoIndex) => {
             const key = `${moduloIndex}-${archivoIndex}`;
-            if (
-              !archivo.url ||
-              typeof archivo.url !== "string" ||
-              archivo.url.trim() === ""
-            ) {
+
+            if (!archivo.url || typeof archivo.url !== "string" || archivo.url.trim() === "") {
               return (
                 <p key={key} className="text-red-600 font-semibold">
-                  URL inválida o no disponible para:{" "}
-                  {archivo.nombre || `Archivo ${archivoIndex + 1}`}
-                </p>
-              );
-            }
-            if (pdfLoadErrorKeys[key]) {
-              return (
-                <p key={key} className="text-red-600 font-semibold">
-                  No se pudo cargar el PDF:{" "}
-                  {archivo.nombre || `Archivo ${archivoIndex + 1}`}
+                  URL inválida o no disponible para: {archivo.nombre || `Archivo ${archivoIndex + 1}`}
                 </p>
               );
             }
 
-            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
-              archivo.url
-            )}&embedded=true`;
+            // Add a direct download link for the PDF
+            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(archivo.url)}&embedded=true`;
 
             return (
               <div key={key} className="mb-6 border rounded p-2 shadow-sm">
-                <p className="font-semibold mb-2">
-                  {archivo.nombre || `Archivo ${archivoIndex + 1}`}
-                </p>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-semibold">
+                    {archivo.nombre || `Archivo ${archivoIndex + 1}`}
+                  </p>
 
-                {/* Eliminar el enlace para abrir o descargar */}
+                  {/* Add direct download link */}
+                  <a
+                    href={archivo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                  >
+                    Abrir/Descargar PDF
+                  </a>
+                </div>
 
-                <iframe
-                  src={viewerUrl}
-                  title={archivo.nombre || `Archivo PDF ${archivoIndex + 1}`}
-                  width="100%"
-                  height="600px"
-                  frameBorder="0"
-                  onError={() => onIframeError(key)}
-                  aria-label={`Archivo PDF ${
-                    archivo.nombre || archivoIndex + 1
-                  }`}
-                />
+                {pdfLoadErrorKeys[key] ? (
+                  // Fallback to object tag if iframe fails
+                  <object
+                    data={archivo.url}
+                    type="application/pdf"
+                    width="100%"
+                    height="600px"
+                    className="border"
+                  >
+                    <p>
+                      No se pudo cargar el PDF.
+                      <a href={archivo.url} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-600 hover:text-blue-800 underline">
+                        Haga clic aquí para descargar el PDF
+                      </a>
+                    </p>
+                  </object>
+                ) : (
+                  <iframe
+                    src={viewerUrl}
+                    title={archivo.nombre || `Archivo PDF ${archivoIndex + 1}`}
+                    width="100%"
+                    height="600px"
+                    frameBorder="0"
+                    onError={() => {
+                      console.error(`Error loading PDF: ${archivo.url}`);
+                      onIframeError(key);
+                    }}
+                    aria-label={`Archivo PDF ${archivo.nombre || archivoIndex + 1}`}
+                    className="border"
+                  />
+                )}
               </div>
             );
           })}
@@ -467,16 +511,16 @@ const CourseDetail = () => {
         Finalizar curso
       </button>
 
-      {showQuiz &&
-        quizModuloIndex !== null &&
-        curso.modulos[quizModuloIndex]?.quiz && (
-          <QuizModal
-            isOpen={showQuiz}
-            onClose={handleCerrarQuiz}
-            quiz={curso.modulos[quizModuloIndex].quiz!}
-            onQuizComplete={handleQuizComplete}
-          />
-        )}
+      {showQuiz && quizModuloIndex !== null && (
+        <CourseQuizModal
+          isOpen={showQuiz}
+          onClose={handleCerrarQuiz}
+          quiz={curso.modulos[quizModuloIndex].quiz || { preguntas: [] }}
+          onQuizComplete={handleQuizComplete}
+          cursoId={cursoId}
+          moduloIndex={quizModuloIndex}
+        />
+      )}
     </div>
   );
 };

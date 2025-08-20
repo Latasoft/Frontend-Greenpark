@@ -16,6 +16,8 @@ interface Modulo {
   enlaces: any[];
   quiz: Quiz;
   archivos: File[];
+  nuevaPregunta?: string;
+  opciones: { texto: string; correcta: boolean }[];
 }
 
 const CourseCreator = () => {
@@ -51,7 +53,7 @@ const CourseCreator = () => {
   const handleAgregarModulo = () => {
     setModulos((prev) => [
       ...prev,
-      { titulo: "", descripcion: "", enlaces: [], quiz: { preguntas: [] }, archivos: [] },
+      { titulo: "", descripcion: "", enlaces: [], quiz: { preguntas: [] }, archivos: [], nuevaPregunta: "", opciones: [{ texto: "", correcta: false }, { texto: "", correcta: false }] },
     ]);
   };
 
@@ -388,6 +390,164 @@ const CourseCreator = () => {
               className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-2 rounded-lg outline-none disabled:opacity-50"
               disabled={loading}
             />
+
+
+{/* Quiz del módulo */}
+<div className="mt-4 p-3 bg-white rounded border border-green-200">
+  <h4 className="font-semibold text-green-700 mb-2">Quiz del módulo</h4>
+  {/* Lista de preguntas ya agregadas */}
+  {modulo.quiz.preguntas.map((pregunta, pi) => (
+    <div key={pi} className="mb-2 flex flex-col gap-1">
+      <div className="flex gap-2 items-center">
+        <span className="font-medium">Pregunta {pi + 1}:</span>
+        <span>{pregunta.texto}</span>
+        <button
+          type="button"
+          className="ml-2 text-red-500 hover:underline"
+          onClick={() => {
+            setModulos((prev) => {
+              const nuevos = [...prev];
+              nuevos[index].quiz.preguntas = nuevos[index].quiz.preguntas.filter((_, i) => i !== pi);
+              return nuevos;
+            });
+          }}
+        >
+          Eliminar
+        </button>
+      </div>
+      <div className="flex gap-2 ml-6 text-sm flex-wrap">
+        {pregunta.opciones.map((op: { texto: string; correcta: boolean }, oi: number) => (
+          <span key={oi}>
+            <b>{String.fromCharCode(97 + oi)}</b> {op.texto}
+            {op.correcta && (
+              <span className="ml-1 text-green-700 font-bold">(Correcta)</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  ))}
+
+  {/* Formulario para agregar nueva pregunta */}
+  <div className="flex flex-col gap-2 mt-2">
+    <input
+      type="text"
+      placeholder="Texto de la pregunta"
+      value={modulo.nuevaPregunta || ""}
+      onChange={e => {
+        const value = e.target.value;
+        setModulos(prev => {
+          const nuevos = [...prev];
+          nuevos[index].nuevaPregunta = value;
+          return nuevos;
+        });
+      }}
+      className="border border-green-300 p-2 rounded-lg outline-none"
+      disabled={loading}
+    />
+    <div className="flex flex-col gap-2">
+      {modulo.opciones.map((op, oi) => (
+        <div key={oi} className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder={`Opción ${String.fromCharCode(97 + oi)}`}
+            value={op.texto}
+            onChange={e => {
+              const value = e.target.value;
+              setModulos(prev => {
+                const nuevos = [...prev];
+                nuevos[index].opciones[oi].texto = value;
+                return nuevos;
+              });
+            }}
+            className="border border-green-300 p-2 rounded-lg outline-none w-60"
+            disabled={loading}
+          />
+          <input
+            type="radio"
+            name={`correcta-${index}`}
+            checked={op.correcta}
+            onChange={() => {
+              setModulos(prev => {
+                const nuevos = [...prev];
+                nuevos[index].opciones = nuevos[index].opciones.map((o, i) => ({
+                  ...o,
+                  correcta: i === oi,
+                }));
+                return nuevos;
+              });
+            }}
+            disabled={loading}
+          />
+          <span className="text-xs">Correcta</span>
+          {modulo.opciones.length > 2 && (
+            <button
+              type="button"
+              className="text-red-500 hover:underline ml-2"
+              onClick={() => {
+                setModulos(prev => {
+                  const nuevos = [...prev];
+                  nuevos[index].opciones = nuevos[index].opciones.filter((_, i) => i !== oi);
+                  // Si la opción eliminada era la correcta, desmarcar todas
+                  if (!nuevos[index].opciones.some(o => o.correcta)) {
+                    if (nuevos[index].opciones[0]) nuevos[index].opciones[0].correcta = true;
+                  }
+                  return nuevos;
+                });
+              }}
+              disabled={loading}
+            >
+              Eliminar
+            </button>
+          )}
+        </div>
+      ))}
+      <button
+        type="button"
+        className="text-green-700 hover:underline w-fit"
+        onClick={() => {
+          setModulos(prev => {
+            const nuevos = [...prev];
+            nuevos[index].opciones.push({ texto: "", correcta: false });
+            return nuevos;
+          });
+        }}
+        disabled={loading}
+      >
+        + Agregar opción
+      </button>
+    </div>
+    <button
+      type="button"
+      className="ml-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 w-fit"
+      disabled={
+        loading ||
+        !modulo.nuevaPregunta ||
+        modulo.opciones.some((op) => !op.texto) ||
+        !modulo.opciones.some((op) => op.correcta)
+      }
+      onClick={() => {
+        setModulos(prev => {
+          const nuevos = [...prev];
+          nuevos[index].quiz.preguntas.push({
+            texto: nuevos[index].nuevaPregunta,
+            opciones: nuevos[index].opciones.map(op => ({ ...op })),
+          });
+          // Limpiar campos auxiliares
+          nuevos[index].nuevaPregunta = "";
+          nuevos[index].opciones = [
+            { texto: "", correcta: false },
+            { texto: "", correcta: false },
+          ];
+          return nuevos;
+        });
+      }}
+    >
+      Agregar pregunta
+    </button>
+  </div>
+</div>
+
 
             {/* Botón para subir archivos */}
             <label

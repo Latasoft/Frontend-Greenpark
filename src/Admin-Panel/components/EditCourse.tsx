@@ -7,8 +7,18 @@ interface Enlace {
   url: string;
 }
 
+interface QuizOpcion {
+  texto: string;
+  correcta: boolean;
+}
+
+interface QuizPregunta {
+  texto: string;
+  opciones: QuizOpcion[];
+}
+
 interface Quiz {
-  preguntas: any[];
+  preguntas: QuizPregunta[];
 }
 
 interface Archivo {
@@ -25,8 +35,13 @@ interface Modulo {
   quiz: Quiz;
   archivos: Archivo[];
   archivosNuevos: File[];
+  // Auxiliares para UI:
+  nuevaPregunta?: string;
+  opciones?: QuizOpcion[];
+  editandoPreguntaIndex?: number | null;
+  editPreguntaTexto?: string;
+  editOpciones?: QuizOpcion[];
 }
-
 
 interface EditCourseProps {
   cursoId: string;
@@ -78,6 +93,14 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
           ...m,
           archivosNuevos: [],
           archivos: m.archivos || [],
+          nuevaPregunta: "",
+          opciones: [
+            { texto: "", correcta: false },
+            { texto: "", correcta: false },
+          ],
+          editandoPreguntaIndex: null,
+          editPreguntaTexto: "",
+          editOpciones: [],
         }));
 
         setTitulo(data.titulo || "");
@@ -230,10 +253,6 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
 
   if (loading) return <p>Cargando curso...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
-
-  // Aquí va el return que me mandarás para actualizar con disabled y spinner
-
-
 
   return (
     <form
@@ -486,6 +505,324 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
                 </ul>
               )}
             </div>
+
+            {/* Quiz del módulo */}
+            <div className="mt-4 p-3 bg-white rounded border border-green-200">
+              <h4 className="font-semibold text-green-700 mb-2">Quiz del módulo</h4>
+              {/* Si no hay preguntas */}
+              {modulo.quiz.preguntas.length === 0 && (
+                <div className="text-gray-500 italic mb-2">No hay preguntas relacionadas.</div>
+              )}
+              {/* Lista de preguntas ya agregadas */}
+              {modulo.quiz.preguntas.map((pregunta, pi) => (
+                <div key={pi} className="mb-2 flex flex-col gap-1 border-b pb-2">
+                  {modulo.editandoPreguntaIndex === pi ? (
+                    <>
+                      <input
+                        type="text"
+                        value={modulo.editPreguntaTexto}
+                        onChange={e => {
+                          const value = e.target.value;
+                          setModulos(prev => {
+                            const nuevos = [...prev];
+                            nuevos[index].editPreguntaTexto = value;
+                            return nuevos;
+                          });
+                        }}
+                        className="border border-green-300 p-2 rounded-lg outline-none mb-2"
+                        disabled={updating}
+                      />
+                      <div className="flex flex-col gap-2">
+                        {(modulo.editOpciones ?? []).map((op, oi) => (
+                          <div key={oi} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={op.texto}
+                              onChange={e => {
+                                const value = e.target.value;
+                                updateEditOpcionTexto(setModulos, index, oi, value);
+                              }}
+                              className="border border-green-300 p-2 rounded-lg outline-none w-60"
+                              disabled={updating}
+                            />
+                            <input
+                              type="radio"
+                              name={`edit-correcta-${index}-${pi}`}
+                              checked={op.correcta}
+                              onChange={() => setEditOpcionCorrecta(setModulos, index, oi)}
+                              disabled={updating}
+                            />
+                            <span className="text-xs">Correcta</span>
+                            {(modulo.editOpciones?.length ?? 0) > 2 && (
+                              <button
+                                type="button"
+                                className="text-red-500 hover:underline ml-2"
+                                onClick={() => removeEditOpcion(setModulos, index, oi)}
+                                disabled={updating}
+                              >
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="text-green-700 hover:underline w-fit"
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              if (!nuevos[index].editOpciones) {
+                                nuevos[index].editOpciones = [];
+                              }
+                              nuevos[index].editOpciones.push({ texto: "", correcta: false });
+                              return nuevos;
+                            });
+                          }}
+                          disabled={updating}
+                        >
+                          + Agregar opción
+                        </button>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                          disabled={
+                            updating ||
+                            !modulo.editPreguntaTexto ||
+                            (modulo.editOpciones ?? []).some((op) => !op.texto) ||
+                            !(modulo.editOpciones ?? []).some((op) => op.correcta)
+                          }
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              nuevos[index].quiz.preguntas[pi] = {
+                                texto: nuevos[index].editPreguntaTexto ?? "",
+                                opciones: (nuevos[index].editOpciones ?? []).map(op => ({ ...op })),
+                              };
+                              nuevos[index].editandoPreguntaIndex = null;
+                              nuevos[index].editPreguntaTexto = "";
+                              nuevos[index].editOpciones = [];
+                              return nuevos;
+                            });
+                          }}
+                        >
+                          Guardar cambios
+                        </button>
+                        <button
+                          type="button"
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              nuevos[index].editandoPreguntaIndex = null;
+                              nuevos[index].editPreguntaTexto = "";
+                              nuevos[index].editOpciones = [];
+                              return nuevos;
+                            });
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex gap-2 items-center">
+                        <span className="font-medium">Pregunta {pi + 1}:</span>
+                        <span>{pregunta.texto}</span>
+                        <button
+                          type="button"
+                          className="ml-2 text-blue-500 hover:underline"
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              nuevos[index].editandoPreguntaIndex = pi;
+                              nuevos[index].editPreguntaTexto = pregunta.texto;
+                              nuevos[index].editOpciones = pregunta.opciones.map(op => ({ ...op }));
+                              return nuevos;
+                            });
+                          }}
+                          disabled={updating}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="ml-2 text-red-500 hover:underline"
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              // Copia el array de preguntas para evitar referencias compartidas
+                              const preguntas = [...nuevos[index].quiz.preguntas];
+                              preguntas.splice(pi, 1); // Elimina solo la pregunta seleccionada
+                              nuevos[index] = {
+                                ...nuevos[index],
+                                quiz: { ...nuevos[index].quiz, preguntas },
+                              };
+                              // Limpia edición si corresponde
+                              if (nuevos[index].editandoPreguntaIndex === pi) {
+                                nuevos[index].editandoPreguntaIndex = null;
+                                nuevos[index].editPreguntaTexto = "";
+                                nuevos[index].editOpciones = [];
+                              } else if (
+                                typeof nuevos[index].editandoPreguntaIndex === "number" &&
+                                nuevos[index].editandoPreguntaIndex > pi
+                              ) {
+                                nuevos[index].editandoPreguntaIndex = nuevos[index].editandoPreguntaIndex - 1;
+                              }
+                              return nuevos;
+                            });
+                          }}
+                          disabled={updating}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                      {/* Si no hay respuestas para la pregunta */}
+                      {(!pregunta.opciones || pregunta.opciones.length === 0) ? (
+                        <div className="ml-6 text-gray-400 italic">No hay respuestas para esta pregunta.</div>
+                      ) : (
+                        <div className="flex gap-2 ml-6 text-sm flex-wrap">
+                          {pregunta.opciones.map((op, oi) => (
+                            <span key={oi}>
+                              <b>{String.fromCharCode(97 + oi)})</b> {op.texto}
+                              {op.correcta && (
+                                <span className="ml-1 text-green-700 font-bold">(Correcta)</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {/* Formulario para agregar nueva pregunta */}
+              <div className="flex flex-col gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Texto de la pregunta"
+                  value={modulo.nuevaPregunta || ""}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setModulos(prev => {
+                      const nuevos = [...prev];
+                      nuevos[index].nuevaPregunta = value;
+                      return nuevos;
+                    });
+                  }}
+                  className="border border-green-300 p-2 rounded-lg outline-none"
+                  disabled={updating}
+                />
+                <div className="flex flex-col gap-2">
+                  {(modulo.opciones || []).map((op, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={`Opción ${String.fromCharCode(97 + oi)}`}
+                        value={op.texto}
+                        onChange={e => {
+                          const value = e.target.value;
+                          setModulos(prev => {
+                            const nuevos = [...prev];
+                            nuevos[index].opciones![oi].texto = value;
+                            return nuevos;
+                          });
+                        }}
+                        className="border border-green-300 p-2 rounded-lg outline-none w-60"
+                        disabled={updating}
+                      />
+                      <input
+                        type="radio"
+                        name={`correcta-nueva-${index}`}
+                        checked={op.correcta}
+                        onChange={() => {
+                          setModulos(prev => {
+                            const nuevos = [...prev];
+                            nuevos[index].opciones = nuevos[index].opciones!.map((o, i) => ({
+                              ...o,
+                              correcta: i === oi,
+                            }));
+                            return nuevos;
+                          });
+                        }}
+                        disabled={updating}
+                      />
+                      <span className="text-xs">Correcta</span>
+                      {(modulo.opciones?.length || 0) > 2 && (
+                        <button
+                          type="button"
+                          className="text-red-500 hover:underline ml-2"
+                          onClick={() => {
+                            setModulos(prev => {
+                              const nuevos = [...prev];
+                              nuevos[index].opciones = nuevos[index].opciones!.filter((_, i) => i !== oi);
+                              return nuevos;
+                            });
+                          }}
+                          disabled={updating}
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="text-green-700 hover:underline w-fit"
+                    onClick={() => {
+                      setModulos(prev => {
+                        const nuevos = [...prev];
+                        const opciones = [...(nuevos[index].opciones || [])];
+                        opciones.push({ texto: "", correcta: false });
+                        nuevos[index] = {
+                          ...nuevos[index],
+                          opciones: opciones.map(op => ({ ...op })), // <-- fuerza nuevos objetos
+                        };
+                        return nuevos;
+                      });
+                    }}
+                    disabled={updating}
+                  >
+                    + Agregar opción
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="ml-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 w-fit"
+                  disabled={
+                    updating ||
+                    !modulo.nuevaPregunta ||
+                    (modulo.opciones || []).some((op) => !op.texto) ||
+                    !(modulo.opciones || []).some((op) => op.correcta)
+                  }
+                  onClick={() => {
+                    setModulos(prev => {
+                      const nuevos = [...prev];
+                      const preguntas = [...nuevos[index].quiz.preguntas];
+                      preguntas.push({
+                        texto: nuevos[index].nuevaPregunta ?? "",
+                        opciones: (nuevos[index].opciones || []).map(op => ({ ...op })), // <-- fuerza nuevos objetos
+                      });
+                      nuevos[index] = {
+                        ...nuevos[index],
+                        quiz: { ...nuevos[index].quiz, preguntas },
+                        nuevaPregunta: "",
+                        opciones: [
+                          { texto: "", correcta: false },
+                          { texto: "", correcta: false },
+                        ].map(op => ({ ...op })), // <-- fuerza nuevos objetos
+                      };
+                      return nuevos;
+                    });
+                  }}
+                >
+                  Agregar pregunta
+                </button>
+              </div>
+            </div>
           </div>
         ))}
 
@@ -547,5 +884,51 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
     </form>
   );
 };
+
+function updateEditOpcionTexto(
+  setModulos: React.Dispatch<React.SetStateAction<Modulo[]>>,
+  moduloIndex: number,
+  opcionIndex: number,
+  value: string
+) {
+  setModulos(prev => {
+    const nuevos = [...prev];
+    if (nuevos[moduloIndex].editOpciones) {
+      nuevos[moduloIndex].editOpciones[opcionIndex].texto = value;
+    }
+    return nuevos;
+  });
+}
+
+function setEditOpcionCorrecta(
+  setModulos: React.Dispatch<React.SetStateAction<Modulo[]>>,
+  moduloIndex: number,
+  opcionIndex: number
+) {
+  setModulos(prev => {
+    const nuevos = [...prev];
+    if (nuevos[moduloIndex].editOpciones) {
+      nuevos[moduloIndex].editOpciones = nuevos[moduloIndex].editOpciones.map((o, i) => ({
+        ...o,
+        correcta: i === opcionIndex,
+      }));
+    }
+    return nuevos;
+  });
+}
+
+function removeEditOpcion(
+  setModulos: React.Dispatch<React.SetStateAction<Modulo[]>>,
+  moduloIndex: number,
+  opcionIndex: number
+) {
+  setModulos(prev => {
+    const nuevos = [...prev];
+    if (nuevos[moduloIndex].editOpciones) {
+      nuevos[moduloIndex].editOpciones = nuevos[moduloIndex].editOpciones.filter((_, i) => i !== opcionIndex);
+    }
+    return nuevos;
+  });
+}
 
 export default EditCourse;
