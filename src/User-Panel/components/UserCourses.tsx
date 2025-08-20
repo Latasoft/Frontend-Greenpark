@@ -137,9 +137,15 @@ const UserCourses = () => {
             <div className="p-6 flex-1 cursor-pointer" onClick={() => navigate(`/cursos/${course.id}`)}>
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-medium text-gray-900">{course.nombre}</h3>
-                <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-[#8BAE52] bg-[#8BAE52]/10">
-                  En progreso
-                </span>
+                {course.progreso === 100 ? (
+                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-100">
+                    Finalizado
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-[#8BAE52] bg-[#8BAE52]/10">
+                    En progreso
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-600 mb-2">
                 Duración: {typeof course.duracion === "number" ? `${course.duracion} horas` : course.duracion}
