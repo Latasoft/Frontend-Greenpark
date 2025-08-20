@@ -55,6 +55,12 @@ interface QuizResult {
   respuestas: number[];
 }
 
+interface ModuloCompletado {
+  moduloIndex: number;
+  aprobado: boolean;
+  porcentaje: number;
+}
+
 const CourseDetail = () => {
   const { cursoId } = useParams<{ cursoId: string }>();
   const [curso, setCurso] = useState<Curso | null>(null);
@@ -66,6 +72,7 @@ const CourseDetail = () => {
   const [quizResults, setQuizResults] = useState<Record<number, QuizResult>>({});
   const [pdfLoadErrorKeys, setPdfLoadErrorKeys] = useState<Record<string, boolean>>({});
   const [pdfVisibleModules, setPdfVisibleModules] = useState<Record<number, boolean>>({});
+  const [modulosCompletados, setModulosCompletados] = useState<ModuloCompletado[]>([]);
 
   const fetchCurso = useCallback(async () => {
     if (!cursoId) return;
@@ -121,6 +128,60 @@ const CourseDetail = () => {
   useEffect(() => {
     fetchCurso();
   }, [fetchCurso]);
+  
+  // Función para cargar intentos previos de los módulos
+  const cargarIntentosPrevios = async () => {
+    if (!curso || !cursoId) return;
+    
+    const usuarioId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
+    
+    if (!usuarioId || !token) {
+      console.error("Usuario no autenticado");
+      return;
+    }
+    
+    const intentosModulos: ModuloCompletado[] = [];
+    
+    try {
+      // Para cada módulo con quiz, verificar si ya tiene intentos previos
+      for (let i = 0; i < curso.modulos.length; i++) {
+        if (!curso.modulos[i].quiz) continue;
+        
+        try {
+          const response = await axios.get(
+            `${baseURL}/api/quiz/intentos/${cursoId}/${i}`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+          
+          const { aprobado, ultimoIntento } = response.data;
+          
+          if (ultimoIntento) {
+            intentosModulos.push({
+              moduloIndex: i,
+              aprobado,
+              porcentaje: ultimoIntento.porcentaje || 0
+            });
+          }
+        } catch (error) {
+          console.error(`Error al verificar intentos para módulo ${i}:`, error);
+        }
+      }
+      
+      setModulosCompletados(intentosModulos);
+    } catch (error) {
+      console.error("Error al cargar intentos previos:", error);
+    }
+  };
+  
+  // Cargar intentos previos cuando el curso esté listo
+  useEffect(() => {
+    if (curso) {
+      cargarIntentosPrevios();
+    }
+  }, [curso]);
 
   // Update the toggleModulo function to show PDFs when a module is opened
   const toggleModulo = (index: number) => {
@@ -144,6 +205,19 @@ const CourseDetail = () => {
     // Verify the quiz exists in this module
     if (curso?.modulos[index]?.quiz) {
       console.log("Quiz found:", curso.modulos[index].quiz);
+      
+      // Si hay un intento previo aprobado, lo mostramos en los resultados
+      const intentoPrevio = modulosCompletados.find(m => m.moduloIndex === index && m.aprobado);
+      if (intentoPrevio) {
+        setQuizResults(prev => ({
+          ...prev,
+          [index]: { 
+            passed: true, 
+            score: intentoPrevio.porcentaje, 
+            respuestas: [] // No tenemos las respuestas específicas
+          }
+        }));
+      }
     } else {
       console.error("No quiz found for this module!");
     }
@@ -207,26 +281,32 @@ const CourseDetail = () => {
       return;
     }
 
-    let totalPreguntas = 0;
-    let totalCorrectas = 0;
-
-    curso.modulos.forEach((modulo, idx) => {
-      if (modulo.quiz && quizResults[idx]) {
-        totalPreguntas += modulo.quiz.preguntas.length;
-        modulo.quiz.preguntas.forEach((pregunta, i) => {
-          if (
-            quizResults[idx].respuestas[i] === pregunta.respuestaCorrecta
-          ) {
-            totalCorrectas++;
-          }
-        });
+    // Contar los módulos con quiz
+    const modulosConQuiz = curso.modulos.filter(m => m.quiz && m.quiz.preguntas.length > 0).length;
+    
+    if (modulosConQuiz === 0) {
+      alert("Este curso no tiene evaluaciones para completar.");
+      return;
+    }
+    
+    // Contar módulos aprobados (combinar intentos previos y resultados actuales)
+    const modulosAprobados = new Set();
+    
+    // Añadir módulos aprobados de intentos previos
+    modulosCompletados.forEach(m => {
+      if (m.aprobado) {
+        modulosAprobados.add(m.moduloIndex);
+      }
+    });
+    
+    // Añadir módulos aprobados en esta sesión
+    Object.entries(quizResults).forEach(([idx, result]) => {
+      if (result.passed) {
+        modulosAprobados.add(parseInt(idx));
       }
     });
 
-    const porcentajeFinal =
-      totalPreguntas > 0
-        ? Math.round((totalCorrectas / totalPreguntas) * 100)
-        : 0;
+    const porcentajeFinal = Math.round((modulosAprobados.size / modulosConQuiz) * 100);
 
     try {
       await axios.post(
@@ -236,7 +316,13 @@ const CourseDetail = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
-      alert(`Curso finalizado con ${porcentajeFinal}% de progreso.`);
+      
+      // Mostrar mensaje apropiado
+      if (porcentajeFinal === 100) {
+        alert(`¡Felicidades! Has completado el 100% del curso.`);
+      } else {
+        alert(`Curso finalizado con ${porcentajeFinal}% de progreso. Completa todos los módulos para obtener el 100%.`);
+      }
     } catch (error) {
       console.error("Error al finalizar curso:", error);
       alert("No se pudo finalizar el curso. Intenta más tarde.");
@@ -453,7 +539,14 @@ const CourseDetail = () => {
                     className="w-full p-4 sm:p-5 flex justify-between items-center bg-gray-100 hover:bg-gray-200 text-[#1A3D33] text-sm sm:text-lg font-semibold rounded-t-lg text-left"
                     onClick={() => toggleModulo(moduloIndex)}
                   >
-                    <span className="flex-1 break-words pr-2">
+                    <span className="flex-1 break-words pr-2 flex items-center">
+                      {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) && (
+                        <span className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                      )}
                       Módulo {moduloIndex + 1} - {modulo.nombre}
                     </span>
                     <svg
@@ -483,15 +576,38 @@ const CourseDetail = () => {
 
                       {modulo.quiz && modulo.quiz.preguntas.length > 0 && (
                         <>
-                          <button
-                            type="button"
-                            className="mt-2 px-5 py-2 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition text-sm sm:text-base"
-                            onClick={() => handleAbrirQuiz(moduloIndex)}
-                          >
-                            {quizResults[moduloIndex]
-                              ? `Evaluación completada - Puntaje: ${quizResults[moduloIndex].score}%`
-                              : "Completar Evaluación"}
-                          </button>
+                          {/* Verificar si hay un intento previo aprobado para este módulo */}
+                          {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) ? (
+                            <div className="mt-2 space-y-2">
+                              <div className="flex items-center">
+                                <div className="w-5 h-5 bg-green-500 rounded-full mr-2 flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                                <span className="text-green-700 font-medium">
+                                  Módulo completado - Puntaje: {modulosCompletados.find(m => m.moduloIndex === moduloIndex)?.porcentaje || 0}%
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="px-5 py-2 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#1A3D33] transition text-sm sm:text-base"
+                                onClick={() => handleAbrirQuiz(moduloIndex)}
+                              >
+                                Ver intento previo
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="mt-2 px-5 py-2 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition text-sm sm:text-base"
+                              onClick={() => handleAbrirQuiz(moduloIndex)}
+                            >
+                              {quizResults[moduloIndex]
+                                ? `Evaluación completada - Puntaje: ${quizResults[moduloIndex].score}%`
+                                : "Completar Evaluación"}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
