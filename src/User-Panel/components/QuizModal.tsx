@@ -79,9 +79,20 @@ const QuizModal: React.FC<QuizModalProps> = ({
         return false;
       }
 
+      // Get user ID from localStorage
+      const usuarioId = localStorage.getItem("userId");
+      if (!usuarioId) {
+        console.error("No hay ID de usuario disponible");
+        setError("No se pudo identificar al usuario. Por favor, inicia sesión nuevamente.");
+        return false;
+      }
+
+      console.log("ID de usuario:", usuarioId);
+
       const payload = {
         cursoId,
         moduloIndex,
+        usuarioId, // Include user ID in the payload
         respuestas: respuestasPreguntas,
         porcentaje,
         puntajeTotal,
