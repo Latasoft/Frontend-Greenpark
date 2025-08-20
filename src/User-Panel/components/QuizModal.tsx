@@ -38,6 +38,18 @@ interface RespuestaPregunta {
   esCorrecta: boolean;
 }
 
+interface IntentosPrevios {
+  intentosPrevios: number;
+  ultimoIntento: {
+    id: string;
+    fecha: string;
+    porcentaje: number;
+    puntajeTotal: number;
+    totalPreguntas: number;
+  } | null;
+  aprobado: boolean;
+}
+
 const QuizModal: React.FC<QuizModalProps> = ({
   isOpen,
   onClose,
@@ -51,6 +63,8 @@ const QuizModal: React.FC<QuizModalProps> = ({
   const [score, setScore] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intentosPrevios, setIntentosPrevios] = useState<IntentosPrevios | null>(null);
+  const [cargandoIntentos, setCargandoIntentos] = useState(false);
 
   // Initialize respuestas when quiz changes
   React.useEffect(() => {
@@ -60,11 +74,50 @@ const QuizModal: React.FC<QuizModalProps> = ({
     }
   }, [quiz]);
 
+  // Verificar intentos previos cuando se abre el modal
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && cursoId && moduloIndex !== undefined) {
       console.log("QuizModal opened with quiz:", quiz);
+      verificarIntentosPrevios();
     }
-  }, [isOpen, quiz]);
+  }, [isOpen, cursoId, moduloIndex]);
+  
+  // Función para verificar intentos previos
+  const verificarIntentosPrevios = async () => {
+    try {
+      setCargandoIntentos(true);
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        console.error("No hay token de autenticación disponible");
+        return;
+      }
+      
+      const response = await axios.get(
+        `${baseURL}/api/quiz/intentos/${cursoId}/${moduloIndex}`,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log("Intentos previos:", response.data);
+      setIntentosPrevios(response.data);
+      
+      // Si ya aprobó este quiz previamente, informamos al usuario
+      if (response.data.aprobado) {
+        setScore(response.data.ultimoIntento.porcentaje);
+        setFinalizado(true);
+      }
+      
+    } catch (error) {
+      console.error("Error al verificar intentos previos:", error);
+    } finally {
+      setCargandoIntentos(false);
+    }
+  };
 
   // Guardar respuestas en el backend
   const guardarRespuestasQuiz = async (respuestasPreguntas: RespuestaPregunta[], porcentaje: number, puntajeTotal: number) => {
@@ -196,6 +249,16 @@ const QuizModal: React.FC<QuizModalProps> = ({
     console.log("Calculando resultado...");
     console.log("Respuestas seleccionadas:", respuestas);
     
+    // Si ya había aprobado el quiz anteriormente y no ha respondido nada nuevo,
+    // simplemente notificamos el resultado anterior
+    if (intentosPrevios?.aprobado && respuestas.every(r => r === -1)) {
+      console.log("Quiz ya aprobado anteriormente, no se requiere cálculo nuevo");
+      setScore(intentosPrevios.ultimoIntento?.porcentaje || 0);
+      setFinalizado(true);
+      onQuizComplete(true, intentosPrevios.ultimoIntento?.porcentaje || 0, respuestas);
+      return;
+    }
+    
     let correctas = 0;
     // Interface for respuestasPreguntas items
     interface RespuestaPreguntaItem {
@@ -253,10 +316,21 @@ const QuizModal: React.FC<QuizModalProps> = ({
     setScore(porcentaje);
     setFinalizado(true);
 
-    // Guardar respuestas en el backend
-    await guardarRespuestasQuiz(respuestasPreguntas, porcentaje, correctas);
+    // Guardar respuestas en el backend solo si es un nuevo intento o si mejoró su calificación
+    const debeGuardar = !intentosPrevios?.aprobado || 
+                      (intentosPrevios?.ultimoIntento?.porcentaje || 0) < porcentaje;
+                      
+    if (debeGuardar) {
+      console.log("Guardando nuevo intento en el backend");
+      await guardarRespuestasQuiz(respuestasPreguntas, porcentaje, correctas);
+    } else {
+      console.log("No se guarda el nuevo intento porque ya había aprobado con mejor calificación");
+    }
     
-    onQuizComplete(porcentaje >= 70, porcentaje, respuestas);
+    // Notificar resultado. Si ya había aprobado antes, mantener ese estado aprobado
+    // independientemente del resultado actual
+    const aprobado = porcentaje >= 70 || intentosPrevios?.aprobado || false;
+    onQuizComplete(aprobado, porcentaje, respuestas);
   };
 
   const reiniciarQuiz = () => {
@@ -285,6 +359,34 @@ const QuizModal: React.FC<QuizModalProps> = ({
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
+          </div>
+        )}
+        
+        {/* Mostrar información de intentos previos */}
+        {intentosPrevios && intentosPrevios.intentosPrevios > 0 && (
+          <div className={`p-4 mb-4 rounded ${intentosPrevios.aprobado ? 'bg-green-100' : 'bg-yellow-100'}`}>
+            <h3 className="font-semibold text-lg mb-2">
+              {intentosPrevios.aprobado 
+                ? '✅ Ya has completado esta evaluación' 
+                : '⚠️ Tienes intentos previos en esta evaluación'}
+            </h3>
+            <p>
+              {intentosPrevios.aprobado 
+                ? `Aprobaste este quiz con ${intentosPrevios.ultimoIntento?.porcentaje || 0}% de calificación.`
+                : `Has realizado ${intentosPrevios.intentosPrevios} intento(s) previo(s). Tu última calificación fue de ${intentosPrevios.ultimoIntento?.porcentaje || 0}%.`}
+            </p>
+            {intentosPrevios.aprobado && (
+              <p className="mt-2 text-sm text-gray-700">
+                Puedes volver a tomar el quiz si deseas mejorar tu calificación, pero tu progreso ya ha sido registrado.
+              </p>
+            )}
+          </div>
+        )}
+        
+        {cargandoIntentos && (
+          <div className="flex justify-center items-center mb-4 p-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#1A3D33]"></div>
+            <span className="ml-2">Verificando intentos previos...</span>
           </div>
         )}
 
