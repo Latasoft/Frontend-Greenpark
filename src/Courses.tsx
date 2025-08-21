@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -16,12 +17,15 @@ interface Curso {
   herramientas?: string[];
   loAprenderan?: string[];
   dirigidoA?: string;
+  estado?: string;
+  rol?: string;
 }
 
 const Courses = () => {
   const { tipo } = useParams<{ tipo?: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const searchParams = new URLSearchParams(location.search);
   const destacados = searchParams.get("destacados");
@@ -60,10 +64,13 @@ const Courses = () => {
           }
         }
 
-        const res = await axios.get(url);
+        const token = localStorage.getItem("token");
+        const res = await axios.get(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
 
         // Normalizar campos para cada curso:
-        const cursosNormalizados: Curso[] = (res.data.cursos || res.data).map(
+        let cursosNormalizados: Curso[] = (res.data.cursos || res.data).map(
           (curso: any) => ({
             ...curso,
             imagen: curso.imagen || curso.imagenUrl || "",
@@ -71,8 +78,14 @@ const Courses = () => {
             herramientas: curso.herramientas || [],
             loAprenderan: curso.loAprenderan || [],
             dirigidoA: curso.dirigidoA || "General",
+            estado: curso.estado || "borrador"
           })
         );
+
+        // Filtrar cursos no publicados para usuarios no admin/docente
+        if (user && !['admin', 'docente'].includes(user.rol.toLowerCase())) {
+          cursosNormalizados = cursosNormalizados.filter(curso => curso.estado === 'publicado');
+        }
 
         setCursos(cursosNormalizados);
       } catch (err) {
@@ -183,6 +196,24 @@ const Courses = () => {
                       className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors"
                       onClick={async (e) => {
                         e.stopPropagation();
+                        if (!user) {
+                          alert("Por favor inicie sesión para tomar el curso.");
+                          return;
+                        }
+
+                        // Verificar que el usuario tenga el rol correcto para el curso
+                        if (curso.dirigidoA && curso.dirigidoA.toLowerCase() !== 'general' && 
+                            user.rol.toLowerCase() !== curso.dirigidoA.toLowerCase()) {
+                          alert(`Este curso está dirigido únicamente a usuarios con rol de ${curso.dirigidoA}`);
+                          return;
+                        }
+
+                        // Verificar que el curso esté publicado
+                        if (curso.estado !== 'publicado' && !['admin', 'docente'].includes(user.rol.toLowerCase())) {
+                          alert("Este curso aún no está disponible.");
+                          return;
+                        }
+
                         try {
                           const token = localStorage.getItem("token");
 
@@ -202,7 +233,7 @@ const Courses = () => {
                             error
                           );
                           alert(
-                            "No se pudo registrar la participación. Por favor inicie sesión."
+                            "No se pudo registrar la participación. Por favor contacte al administrador."
                           );
                         }
                       }}
