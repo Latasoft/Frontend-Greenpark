@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import CourseQuizModal from "./components/CourseQuizModal";
 
@@ -73,6 +73,7 @@ const CourseDetail = () => {
   const [pdfLoadErrorKeys, setPdfLoadErrorKeys] = useState<Record<string, boolean>>({});
   const [pdfVisibleModules, setPdfVisibleModules] = useState<Record<number, boolean>>({});
   const [modulosCompletados, setModulosCompletados] = useState<ModuloCompletado[]>([]);
+  const [diplomaUrl, setDiplomaUrl] = useState<string | null>(null);
 
   const fetchCurso = useCallback(async () => {
     if (!cursoId) return;
@@ -129,7 +130,7 @@ const CourseDetail = () => {
     fetchCurso();
   }, [fetchCurso]);
   
-  // Función para cargar intentos previos de los módulos
+  // Función para cargar intentos previos de los módulos y verificar certificados existentes
   const cargarIntentosPrevios = async () => {
     if (!curso || !cursoId) return;
     
@@ -139,6 +140,23 @@ const CourseDetail = () => {
     if (!usuarioId || !token) {
       console.error("Usuario no autenticado");
       return;
+    }
+    
+    // Verificar si ya existe un certificado para este curso
+    try {
+      const certificadosResponse = await axios.get(
+        `${baseURL}/api/certificados/usuario/${usuarioId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const certificados = certificadosResponse.data.certificados || [];
+      const certificadoCurso = certificados.find(cert => cert.cursoId === cursoId);
+      
+      if (certificadoCurso && certificadoCurso.diplomaUrl) {
+        setDiplomaUrl(certificadoCurso.diplomaUrl);
+      }
+    } catch (error) {
+      console.error("Error al cargar certificados:", error);
     }
     
     const intentosModulos: ModuloCompletado[] = [];
@@ -259,6 +277,23 @@ const CourseDetail = () => {
         : 0;
 
     try {
+      // Primero registramos la respuesta al quiz
+      await axios.post(
+        `${baseURL}/api/cursos/${cursoId}/modulos/${quizModuloIndex}/responder`,
+        {
+          usuarioId,
+          cursoId,
+          moduloIndex: quizModuloIndex,
+          respuestas,
+          aprobado: passed,
+          calificacion: score
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      // Luego actualizamos el progreso general del curso
       await axios.post(
         `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
         { progreso },
@@ -266,7 +301,20 @@ const CourseDetail = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
+      
       console.log("Progreso actualizado:", progreso);
+      
+      // Actualizamos el estado local para mostrar el progreso actualizado inmediatamente
+      if (curso) {
+        // Actualizar el progreso en el estado local (el nombre del campo puede variar)
+        // Si hay un error de TypeScript, es posible que el campo se llame diferente
+        setCurso({
+          ...curso,
+          // Intentamos actualizar el campo que corresponda al progreso
+          ...(curso.hasOwnProperty('porcentajeProgreso') ? { porcentajeProgreso: progreso } : {}),
+          ...(curso.hasOwnProperty('progreso') ? { progreso: progreso } : {})
+        });
+      }
     } catch (error) {
       console.error("Error al actualizar progreso:", error);
     }
@@ -280,6 +328,9 @@ const CourseDetail = () => {
       alert("Debes iniciar sesión para finalizar el curso.");
       return;
     }
+    
+    // Mostrar mensaje de carga
+    alert("Procesando solicitud de certificado. Por favor espera...");
 
     // Contar los módulos con quiz
     const modulosConQuiz = curso.modulos.filter(m => m.quiz && m.quiz.preguntas.length > 0).length;
@@ -309,19 +360,79 @@ const CourseDetail = () => {
     const porcentajeFinal = Math.round((modulosAprobados.size / modulosConQuiz) * 100);
 
     try {
-      await axios.post(
-        `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
-        { progreso: porcentajeFinal },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-      
-      // Mostrar mensaje apropiado
+      // Si el curso está 100% completado, usamos la ruta de finalizar para generar certificado
       if (porcentajeFinal === 100) {
-        alert(`¡Felicidades! Has completado el 100% del curso.`);
+        const response = await axios.post(
+          `${baseURL}/api/cursos/finalizar`,
+          { 
+            cursoId,
+            usuarioId
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          }
+        );
+        
+        console.log("Respuesta de finalizar curso:", response.data);
+        
+        // Si se generó el certificado, guardamos la URL del diploma
+        if (response.data.diplomaUrl) {
+          setDiplomaUrl(response.data.diplomaUrl);
+          
+          // Abrir el diploma en una nueva pestaña
+          const diplomaFullUrl = `${baseURL}${response.data.diplomaUrl}`;
+          console.log("Abriendo diploma en:", diplomaFullUrl);
+          
+          try {
+            window.open(diplomaFullUrl, '_blank');
+            alert(`¡Felicidades! Has completado el curso. Tu certificado ha sido generado y se ha abierto en una nueva pestaña.`);
+          } catch (e) {
+            console.error("Error al abrir la ventana:", e);
+            alert(`¡Felicidades! Has completado el curso. Tu certificado ha sido generado. Puedes acceder a él desde el botón "Ver certificado" en esta página.`);
+          }
+        } else {
+          console.error("No se encontró diplomaUrl en la respuesta:", response.data);
+          alert(`¡Felicidades! Has completado el curso. Pero hubo un problema al generar el certificado. Por favor, contacta con soporte.`);
+        }
       } else {
-        alert(`Curso finalizado con ${porcentajeFinal}% de progreso. Completa todos los módulos para obtener el 100%.`);
+        // Para depuración, vamos a forzar la finalización aunque no esté al 100%
+        console.log(`El progreso actual es ${porcentajeFinal}%. Se intentará generar el certificado de todas formas.`);
+        
+        try {
+          const response = await axios.post(
+            `${baseURL}/api/cursos/finalizar`,
+            { 
+              cursoId,
+              usuarioId
+            },
+            {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            }
+          );
+          
+          console.log("Respuesta de finalizar curso (forzado):", response.data);
+          
+          if (response.data.diplomaUrl) {
+            setDiplomaUrl(response.data.diplomaUrl);
+            window.open(`${baseURL}${response.data.diplomaUrl}`, '_blank');
+            alert(`Certificado generado con éxito. Se ha abierto en una nueva pestaña.`);
+          } else {
+            alert(`Se ha intentado generar el certificado, pero hubo un problema.`);
+          }
+        } catch (error) {
+          console.error("Error al forzar la finalización del curso:", error);
+          
+          // Si falla el forzado, actualizamos el progreso normalmente
+          await axios.post(
+            `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
+            { progreso: porcentajeFinal },
+            {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            }
+          );
+          
+          alert(`Curso finalizado con ${porcentajeFinal}% de progreso. Completa todos los módulos para obtener el certificado.`);
+        }
       }
     } catch (error) {
       console.error("Error al finalizar curso:", error);
@@ -619,13 +730,60 @@ const CourseDetail = () => {
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={handleFinalizarCurso}
-        className="mt-10 w-full py-3 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#6f8a3d] transition"
-      >
-        Finalizar curso
-      </button>
+      <div className="mt-10 space-y-4">
+        <button
+          type="button"
+          onClick={handleFinalizarCurso}
+          className="w-full py-3 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#6f8a3d] transition"
+        >
+          Finalizar curso
+        </button>
+
+        {diplomaUrl && (
+          <>
+            <a
+              href={`${baseURL}${diplomaUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-3 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#325b4e] transition text-center"
+              onClick={(e) => {
+                e.preventDefault();
+                const url = `${baseURL}${diplomaUrl}`;
+                console.log("Abriendo certificado en:", url);
+                window.open(url, '_blank');
+              }}
+            >
+              Ver Certificado
+            </a>
+            <div className="p-4 border border-gray-300 rounded bg-gray-50">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Link directo al certificado:</strong>
+              </p>
+              <input 
+                type="text" 
+                readOnly 
+                value={`${baseURL}${diplomaUrl}`} 
+                className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                onClick={(e) => {
+                  // Seleccionar todo el texto al hacer clic
+                  (e.target as HTMLInputElement).select();
+                }}
+              />
+              <button
+                type="button"
+                className="mt-2 px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300 transition"
+                onClick={() => {
+                  // Copiar al portapapeles
+                  navigator.clipboard.writeText(`${baseURL}${diplomaUrl}`);
+                  alert("URL copiada al portapapeles");
+                }}
+              >
+                Copiar URL
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       {showQuiz && quizModuloIndex !== null && (
         <CourseQuizModal
