@@ -150,7 +150,7 @@ const CourseDetail = () => {
       );
       
       const certificados = certificadosResponse.data.certificados || [];
-      const certificadoCurso = certificados.find(cert => cert.cursoId === cursoId);
+      const certificadoCurso = certificados.find((cert: { cursoId: string; }) => cert.cursoId === cursoId);
       
       if (certificadoCurso && certificadoCurso.diplomaUrl) {
         setDiplomaUrl(certificadoCurso.diplomaUrl);
