@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const baseURL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3000"
-    : "https://greenpark-backend-0ua6.onrender.com";
-
 interface OpcionQuiz {
   texto: string;
   correcta?: boolean;
@@ -21,11 +16,6 @@ interface Quiz {
   preguntas: Pregunta[];
 }
 
-interface RespuestaPregunta {
-  pregunta: string;
-  respuestaUsuario: number;
-  esCorrecta: boolean;
-}
 
 interface QuizModalProps {
   isOpen: boolean;
