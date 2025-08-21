@@ -399,44 +399,19 @@ const CourseDetail = () => {
           alert(`¡Felicidades! Has completado el curso. Pero hubo un problema al generar el certificado. Por favor, contacta con soporte.`);
         }
       } else {
-        // Para depuración, vamos a forzar la finalización aunque no esté al 100%
-        console.log(`El progreso actual es ${porcentajeFinal}%. Se intentará generar el certificado de todas formas.`);
+        // El curso no está completado al 100%, solo actualizamos el progreso
+        console.log(`El progreso actual es ${porcentajeFinal}%. No se puede generar el certificado hasta completar el 100%.`);
         
-        try {
-          const response = await axios.post(
-            `${baseURL}/api/cursos/finalizar`,
-            { 
-              cursoId,
-              usuarioId
-            },
-            {
-              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            }
-          );
-          
-          console.log("Respuesta de finalizar curso (forzado):", response.data);
-          
-          if (response.data.diplomaUrl) {
-            setDiplomaUrl(response.data.diplomaUrl);
-            window.open(`${baseURL}${response.data.diplomaUrl}`, '_blank');
-            alert(`Certificado generado con éxito. Se ha abierto en una nueva pestaña.`);
-          } else {
-            alert(`Se ha intentado generar el certificado, pero hubo un problema.`);
+        // Actualizamos el progreso en la base de datos
+        await axios.post(
+          `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
+          { progreso: porcentajeFinal },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }
-        } catch (error) {
-          console.error("Error al forzar la finalización del curso:", error);
-          
-          // Si falla el forzado, actualizamos el progreso normalmente
-          await axios.post(
-            `${baseURL}/api/cursos/${cursoId}/usuarios/${usuarioId}/progreso`,
-            { progreso: porcentajeFinal },
-            {
-              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            }
-          );
-          
-          alert(`Curso finalizado con ${porcentajeFinal}% de progreso. Completa todos los módulos para obtener el certificado.`);
-        }
+        );
+        
+        alert(`Has completado ${porcentajeFinal}% del curso. Necesitas completar el 100% para obtener tu certificado.`);
       }
     } catch (error) {
       console.error("Error al finalizar curso:", error);
