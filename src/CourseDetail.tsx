@@ -74,6 +74,7 @@ const CourseDetail = () => {
   const [pdfVisibleModules, setPdfVisibleModules] = useState<Record<number, boolean>>({});
   const [modulosCompletados, setModulosCompletados] = useState<ModuloCompletado[]>([]);
   const [diplomaUrl, setDiplomaUrl] = useState<string | null>(null);
+  const [finalizandoCurso, setFinalizandoCurso] = useState<boolean>(false);
 
   const fetchCurso = useCallback(async () => {
     if (!cursoId) return;
@@ -321,13 +322,16 @@ const CourseDetail = () => {
   };
 
   const handleFinalizarCurso = async () => {
-    if (!cursoId || !curso) return;
+    if (!cursoId || !curso || finalizandoCurso) return;
 
     const usuarioId = localStorage.getItem("userId");
     if (!usuarioId) {
       alert("Debes iniciar sesión para finalizar el curso.");
       return;
     }
+    
+    // Activar estado de carga
+    setFinalizandoCurso(true);
     
     // Mostrar mensaje de carga
     alert("Procesando solicitud de certificado. Por favor espera...");
@@ -437,6 +441,9 @@ const CourseDetail = () => {
     } catch (error) {
       console.error("Error al finalizar curso:", error);
       alert("No se pudo finalizar el curso. Intenta más tarde.");
+    } finally {
+      // Desactivar estado de carga
+      setFinalizandoCurso(false);
     }
   };
 
@@ -734,9 +741,14 @@ const CourseDetail = () => {
         <button
           type="button"
           onClick={handleFinalizarCurso}
-          className="w-full py-3 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#6f8a3d] transition"
+          disabled={finalizandoCurso}
+          className={`w-full py-3 ${
+            finalizandoCurso 
+              ? "bg-gray-400 cursor-not-allowed" 
+              : "bg-[#8BAE52] hover:bg-[#6f8a3d]"
+          } text-white font-semibold rounded transition`}
         >
-          Finalizar curso
+          {finalizandoCurso ? "Procesando solicitud..." : "Finalizar curso"}
         </button>
 
         {diplomaUrl && (
