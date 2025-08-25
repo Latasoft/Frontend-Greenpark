@@ -146,7 +146,7 @@ const Courses = () => {
               cursos.map((curso) => (
                 <div
                   key={curso.id}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer"
+                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer flex flex-col h-full" // Added flex and height classes
                   onClick={() => navigate(`/cursos/${curso.id}`)}
                 >
                   <div className="relative">
@@ -159,87 +159,96 @@ const Courses = () => {
                       className="w-full h-48 object-cover"
                     />
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">
-                      {curso.titulo}
-                    </h3>
-                    <div className="flex items-center text-sm text-gray-600 mb-4">
-                      <span>
-                        Duración: {curso.duracionHoras || "N/A"} horas
-                      </span>
+                  
+                  {/* Content wrapper - this will expand to fill available space */}
+                  <div className="p-6 flex flex-col flex-1">
+                    {/* Course content - all existing information preserved */}
+                    <div className="flex-1"> {/* This div expands to push button down */}
+                      <h3 className="text-lg font-semibold text-[#1A3D33] mb-4">
+                        {curso.titulo}
+                      </h3>
+                      <div className="flex items-center text-sm text-gray-600 mb-4">
+                        <span>
+                          Duración: {curso.duracionHoras || "N/A"} horas
+                        </span>
+                      </div>
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-[#1A3D33] mb-2">
+                          Herramientas:
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {curso.herramientas?.length
+                            ? curso.herramientas.join(", ")
+                            : "No especificado"}
+                        </p>
+                      </div>
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-[#1A3D33] mb-2">
+                          Aprenderás:
+                        </h4>
+                        <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                          {curso.loAprenderan?.length ? (
+                            curso.loAprenderan.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))
+                          ) : (
+                            <li>No especificado</li>
+                          )}
+                        </ul>
+                      </div>
                     </div>
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-[#1A3D33] mb-2">
-                        Herramientas:
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {curso.herramientas?.length
-                          ? curso.herramientas.join(", ")
-                          : "No especificado"}
-                      </p>
+                    
+                    {/* Button container - always at bottom with consistent spacing */}
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                      <button
+                        className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!user) {
+                            alert("Por favor inicie sesión para tomar el curso.");
+                            return;
+                          }
+
+                          // Verificar que el usuario tenga el rol correcto para el curso
+                          if (curso.dirigidoA && curso.dirigidoA.toLowerCase() !== 'general' && 
+                              user.rol.toLowerCase() !== curso.dirigidoA.toLowerCase()) {
+                            alert(`Este curso está dirigido únicamente a usuarios con rol de ${curso.dirigidoA}`);
+                            return;
+                          }
+
+                          // Verificar que el curso esté publicado
+                          if (curso.estado !== 'publicado' && !['admin', 'docente'].includes(user.rol.toLowerCase())) {
+                            alert("Este curso aún no está disponible.");
+                            return;
+                          }
+
+                          try {
+                            const token = localStorage.getItem("token");
+
+                            axios.post(
+                              `${baseURL}/api/cursos/${curso.id}/registrarParticipante`,
+                              {},
+                              {
+                                headers: { Authorization: `Bearer ${token}` },
+                              }
+                            ).then(() => {
+                              alert("¡Registro exitoso!");
+                              navigate(`/cursos/${curso.id}`);
+                            });
+                          } catch (error) {
+                            console.error(
+                              "Error al registrar participante",
+                              error
+                            );
+                            alert(
+                              "No se pudo registrar la participación. Por favor contacte al administrador."
+                            );
+                          }
+                        }}
+                      >
+                        Comenzar Curso
+                      </button>
                     </div>
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-[#1A3D33] mb-2">
-                        Aprenderás:
-                      </h4>
-                      <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                        {curso.loAprenderan?.length ? (
-                          curso.loAprenderan.map((item, index) => (
-                            <li key={index}>{item}</li>
-                          ))
-                        ) : (
-                          <li>No especificado</li>
-                        )}
-                      </ul>
-                    </div>
-                    <button
-                      className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!user) {
-                          alert("Por favor inicie sesión para tomar el curso.");
-                          return;
-                        }
-
-                        // Verificar que el usuario tenga el rol correcto para el curso
-                        if (curso.dirigidoA && curso.dirigidoA.toLowerCase() !== 'general' && 
-                            user.rol.toLowerCase() !== curso.dirigidoA.toLowerCase()) {
-                          alert(`Este curso está dirigido únicamente a usuarios con rol de ${curso.dirigidoA}`);
-                          return;
-                        }
-
-                        // Verificar que el curso esté publicado
-                        if (curso.estado !== 'publicado' && !['admin', 'docente'].includes(user.rol.toLowerCase())) {
-                          alert("Este curso aún no está disponible.");
-                          return;
-                        }
-
-                        try {
-                          const token = localStorage.getItem("token");
-
-                          await axios.post(
-                            `${baseURL}/api/cursos/${curso.id}/registrarParticipante`,
-                            {},
-                            {
-                              headers: { Authorization: `Bearer ${token}` },
-                            }
-                          );
-
-                          alert("¡Registro exitoso!");
-                          navigate(`/cursos/${curso.id}`);
-                        } catch (error) {
-                          console.error(
-                            "Error al registrar participante",
-                            error
-                          );
-                          alert(
-                            "No se pudo registrar la participación. Por favor contacte al administrador."
-                          );
-                        }
-                      }}
-                    >
-                      Comenzar Curso
-                    </button>
                   </div>
                 </div>
               ))
