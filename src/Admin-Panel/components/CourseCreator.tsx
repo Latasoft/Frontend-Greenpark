@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
-import Swal from 'sweetalert2'; // Add this import
+import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom'; // Add this import
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -22,6 +23,7 @@ interface Modulo {
 }
 
 const CourseCreator = () => {
+  const navigate = useNavigate(); // Add this hook
   const [titulo, setTitulo] = useState("");
   const [imagen, setImagen] = useState<File | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
@@ -174,34 +176,24 @@ const CourseCreator = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       
-      // Replace alert with SweetAlert
+      // Replace with SweetAlert that redirects
       Swal.fire({
         icon: 'success',
         title: '¡Curso creado!',
         text: 'El curso ha sido creado exitosamente.',
-        confirmButtonColor: '#8BAE52'
+        confirmButtonColor: '#8BAE52',
+        confirmButtonText: 'Ver cursos'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Navigate to the courses page
+          navigate('/admin/courses');
+        }
       });
       
       console.log("Curso creado:", res.data);
-
-      // Resetear formulario
-      setTitulo("");
-      setImagen(null);
-      setImagenPreview(null);
-      setBienvenida("");
-      setDuracionHoras("");
-      setDirigidoA("comunidad");
-      setFechaInicio("");
-      setFechaTermino("");
-      setHerramientas([]);
-      setHerramientaInput("");
-      setLoAprenderan([]);
-      setAprenderInput("");
-      setModulos([]);
     } catch (error) {
       console.error("Error al crear curso:", error);
       
-      // Replace alert with SweetAlert
       Swal.fire({
         icon: 'error',
         title: 'Error',

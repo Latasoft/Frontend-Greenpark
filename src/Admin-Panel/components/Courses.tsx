@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2'; // Add this import
 
 interface Curso {
   id: string;
@@ -138,41 +139,97 @@ const Courses: React.FC = () => {
     fetchCursos();
   }, []);
 
-const handlePublicarCurso = async (cursoId: string) => {
-  setAccionandoId(cursoId);
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('Token no encontrado');
-
-    const response = await fetch(`${baseURL}/api/cursos/${cursoId}/publicar`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+  // Replace the handleEliminarCurso function with this improved version
+  const handleEliminarCurso = async (id: string) => {
+    // Replace window.confirm with SweetAlert
+    const result = await Swal.fire({
+      title: '¿Eliminar curso?',
+      text: '¿Estás seguro de eliminar este curso? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
     });
 
-    if (!response.ok) throw new Error('Error al publicar el curso');
-    await fetchCursos();
-  } catch {
-    alert('Error al publicar curso');
-  } finally {
-    setAccionandoId(null);
-  }
-};
-
-  const handleEliminarCurso = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este curso? Esta acción no se puede deshacer.')) return;
+    if (!result.isConfirmed) return;
 
     setAccionandoId(id);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${baseURL}/api/cursos/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
       });
+      
       if (!response.ok) throw new Error('Error al eliminar el curso');
+      
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Curso eliminado',
+        text: 'El curso ha sido eliminado exitosamente',
+        confirmButtonColor: '#8BAE52'
+      });
+      
+      await fetchCursos();
+    } catch (error) {
+      // Show error message
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al eliminar el curso. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52'
+      });
+    } finally {
+      setAccionandoId(null);
+    }
+  };
+
+  // Also let's add SweetAlert to the publish function
+  const handlePublicarCurso = async (cursoId: string) => {
+    setAccionandoId(cursoId);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de autenticación',
+          text: 'No se encontró el token de autenticación',
+          confirmButtonColor: '#8BAE52'
+        });
+        return;
+      }
+
+      const response = await fetch(`${baseURL}/api/cursos/${cursoId}/publicar`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Error al publicar el curso');
+      
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Curso publicado',
+        text: 'El curso ha sido publicado exitosamente',
+        confirmButtonColor: '#8BAE52'
+      });
+      
       await fetchCursos();
     } catch {
-      alert('Error al eliminar curso');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al publicar el curso. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52'
+      });
     } finally {
       setAccionandoId(null);
     }

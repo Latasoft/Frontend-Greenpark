@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import axios from "axios";
-import Swal from 'sweetalert2'; // Add this import
+import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom'; // Add this import
 
 interface Enlace {
   nombre: string;
@@ -54,6 +55,7 @@ const baseURL =
     : "https://greenpark-backend-0ua6.onrender.com";
 
 const EditCourse = ({ cursoId }: EditCourseProps) => {
+  const navigate = useNavigate(); // Add this hook
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false); // nuevo estado para controlar actualización
   const [error, setError] = useState<string | null>(null);
@@ -253,16 +255,16 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
         },
       });
 
-      // Replace window.confirm with SweetAlert
+      // Update SweetAlert to redirect after confirmation
       Swal.fire({
         icon: 'success',
         title: '¡Curso actualizado!',
         text: 'Los cambios han sido guardados exitosamente.',
         confirmButtonColor: '#8BAE52',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'Ver cursos'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.reload();
+          navigate('/admin/courses');
         }
       });
     } catch (error: any) {
