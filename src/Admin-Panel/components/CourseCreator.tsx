@@ -177,6 +177,9 @@ const CourseCreator = () => {
     }
   };
 
+  // Get today's date in YYYY-MM-DD format for min attribute
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -269,6 +272,7 @@ const CourseCreator = () => {
           type="date"
           value={fechaInicio}
           onChange={(e) => setFechaInicio(e.target.value)}
+          min={today} // This prevents selecting dates before today
           className="border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none w-1/2 disabled:opacity-50"
           disabled={loading}
         />
@@ -276,6 +280,7 @@ const CourseCreator = () => {
           type="date"
           value={fechaTermino}
           onChange={(e) => setFechaTermino(e.target.value)}
+          min={fechaInicio || today} // Uses startDate if set, otherwise today
           className="border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none w-1/2 disabled:opacity-50"
           disabled={loading}
         />
