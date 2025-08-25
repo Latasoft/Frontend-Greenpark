@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { 
+  UserIcon, AcademicCapIcon, EnvelopeIcon, 
+  ArrowRightOnRectangleIcon 
+} from '@heroicons/react/24/outline';
+import PageTitle from '../components/PageTitle';
 import Profile from '../Admin-Panel/components/Profile';
 import UserCourses from './components/UserCourses';
 import Messages from './components/UserMessagesPage';
-import PageTitle from '../components/PageTitle';
 
 const UserPanel = () => {
   const [currentSection, setCurrentSection] = useState('profile');
@@ -11,10 +15,10 @@ const UserPanel = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { id: 'profile', name: 'Mi Perfil', icon: 'user' },
-    { id: 'courses', name: 'Cursos', icon: 'academic-cap' },
-    { id: 'messages', name: 'Mensajes', icon: 'mail' },
-    { id: 'logout', name: 'Cerrar Sesión', icon: 'logout' }
+    { id: 'profile', name: 'Mi Perfil', icon: UserIcon },
+    { id: 'courses', name: 'Cursos', icon: AcademicCapIcon },
+    { id: 'messages', name: 'Mensajes', icon: EnvelopeIcon },
+    { id: 'logout', name: 'Cerrar Sesión', icon: ArrowRightOnRectangleIcon }
   ];
 
   const handleMenuClick = (sectionId: string) => {
@@ -40,52 +44,68 @@ const UserPanel = () => {
   };
 
   return (
-    <div className="relative flex h-screen bg-gray-100">
+    <div className="relative flex min-h-[calc(100vh-64px)] bg-gray-100 pt-0">
       <PageTitle title="Panel de Usuario" />
 
+      {/* Overlay for mobile sidebar */}
       <div 
         className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${isSidebarOpen ? 'block' : 'hidden'}`}
         onClick={() => setSidebarOpen(false)}
       />
 
+      {/* Sidebar - fix height and top positioning */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-30
-        w-64 bg-[#1A3D33] text-white 
+        fixed lg:static top-16 bottom-0 left-0 z-30
+        w-64 bg-[#1A3D33] text-white flex flex-col
         transform transition-transform duration-300 ease-in-out
-        lg:transform-none
+        lg:transform-none lg:min-h-[calc(100vh-64px)] shadow-lg
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-4">
+        <div className="p-4 border-b border-[#8BAE52]/20">
           <h2 className="text-2xl font-bold">Panel de Usuario</h2>
         </div>
-        <nav className="mt-8 flex flex-col flex-1">
-          <div className="flex-1">
-            {menuItems.slice(0, -1).map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center px-6 py-3 text-left ${
-                  currentSection === item.id 
-                    ? 'bg-[#8BAE52] text-white' 
-                    : 'hover:bg-[#8BAE52]/10'
-                }`}
-              >
-                <span>{item.name}</span>
-              </button>
-            ))}
+        
+        <nav className="mt-6 flex-1 flex flex-col">
+          <div className="flex-1 space-y-1">
+            {menuItems.slice(0, -1).map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item.id)}
+                  className={`w-full flex items-center px-4 py-3 text-left transition-colors ${
+                    currentSection === item.id
+                      ? 'bg-[#8BAE52] text-white font-medium'
+                      : 'hover:bg-[#8BAE52]/10'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  <span>{item.name}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="mt-auto border-t border-[#8BAE52]/20">
-            <button
-              onClick={() => handleMenuClick('logout')}
-              className="w-full flex items-center px-6 py-3 text-left hover:bg-[#8BAE52]/10"
-            >
-              <span>Cerrar Sesión</span>
-            </button>
+          
+          <div className="border-t border-[#8BAE52]/20 pt-2 mt-2">
+            {menuItems.slice(-1).map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item.id)}
+                  className="w-full flex items-center px-4 py-3 text-left hover:bg-[#8BAE52]/10 transition-colors"
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  <span>{item.name}</span>
+                </button>
+              );
+            })}
           </div>
         </nav>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Content area */}
+      <div className="flex-1 flex flex-col">
         <header className="bg-white shadow-sm z-10">
           <div className="px-6 py-4 flex items-center">
             <button
@@ -97,13 +117,13 @@ const UserPanel = () => {
               </svg>
             </button>
             <h1 className="text-2xl font-semibold text-[#1A3D33]">
-              {menuItems.find(item => item.id === currentSection)?.name}
+              {menuItems.find(item => item.id === currentSection)?.name || 'Panel de Usuario'}
             </h1>
           </div>
         </header>
-        <main className="p-6">
+
+        <main className="p-6 flex-1 overflow-auto">
           <Routes>
-            {/* Add this redirect route */}
             <Route path="/" element={<Navigate to="profile" replace />} />
             <Route path="profile" element={<Profile />} />
             <Route path="courses" element={<UserCourses />} />

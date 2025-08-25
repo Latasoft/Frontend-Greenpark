@@ -11,7 +11,7 @@ const AdminMessagesPage: React.FC = () => {
   if (!user) return <div>Cargando usuario...</div>;
 
   return (
-    <div className="p-4 min-h-[90vh] flex flex-col">
+    <div className="p-4 flex flex-col">
       <h1 className="text-2xl font-bold mb-6">Mensajes del Administrador</h1>
 
       <div className="mb-8">
