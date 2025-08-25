@@ -25,6 +25,8 @@ const UserCourses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  const [isColdStart, setIsColdStart] = useState(false);
+  const [coldStartTimer, setColdStartTimer] = useState(0);
   const navigate = useNavigate();
 
   const CACHE_KEY = 'user_courses_cache';
@@ -101,6 +103,30 @@ const UserCourses = () => {
 
     fetchCourses();
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (loading) {
+      // Si después de 3 segundos sigue cargando, probablemente es cold start
+      const delay = setTimeout(() => {
+        setIsColdStart(true);
+        
+        // Contador ascendente para mostrar al usuario cuánto tiempo lleva
+        timer = setInterval(() => {
+          setColdStartTimer(prev => prev + 1);
+        }, 1000);
+      }, 3000);
+      
+      return () => {
+        clearTimeout(delay);
+        if (timer) clearInterval(timer);
+      };
+    } else {
+      setIsColdStart(false);
+      setColdStartTimer(0);
+    }
+  }, [loading]);
 
   async function handleDeleteCurso(cursoId: string) {
     const result = await Swal.fire({
@@ -267,6 +293,14 @@ const UserCourses = () => {
           </li>
         ))}
       </ul>
+
+      {isColdStart && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded-md">
+          <p className="text-yellow-700 text-sm">
+            El servidor se está iniciando, esto puede tomar hasta 1 minuto... ({coldStartTimer}s)
+          </p>
+        </div>
+      )}
     </div>
   );
 };
