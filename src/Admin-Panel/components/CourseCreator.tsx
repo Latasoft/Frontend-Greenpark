@@ -192,6 +192,7 @@ const CourseCreator = () => {
       {/* Título */}
       <input
         type="text"
+        name="titulo" // Add name attributes
         placeholder="Título del curso"
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
@@ -226,7 +227,6 @@ const CourseCreator = () => {
           accept="image/*"
           onChange={(e) => handleImagenChange(e.target.files?.[0] || null)}
           className="hidden"
-          required
           disabled={loading}
         />
       </div>
@@ -534,16 +534,28 @@ const CourseCreator = () => {
       onClick={() => {
         setModulos(prev => {
           const nuevos = [...prev];
-          nuevos[index].quiz.preguntas.push({
+          // Create a new array instead of mutating the original
+          const preguntas = [...nuevos[index].quiz.preguntas];
+          
+          // Add the question to the new array
+          preguntas.push({
             texto: nuevos[index].nuevaPregunta,
             opciones: nuevos[index].opciones.map(op => ({ ...op })),
           });
-          // Limpiar campos auxiliares
-          nuevos[index].nuevaPregunta = "";
-          nuevos[index].opciones = [
-            { texto: "", correcta: false },
-            { texto: "", correcta: false },
-          ];
+          
+          // Update the module with the new array
+          nuevos[index] = {
+            ...nuevos[index],
+            quiz: { 
+              ...nuevos[index].quiz, 
+              preguntas 
+            },
+            nuevaPregunta: "",
+            opciones: [
+              { texto: "", correcta: false },
+              { texto: "", correcta: false }
+            ]
+          };
           return nuevos;
         });
       }}
