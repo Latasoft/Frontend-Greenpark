@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import axios from "axios";
+import Swal from 'sweetalert2'; // Add this import
 
 interface Enlace {
   nombre: string;
@@ -191,17 +192,33 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
     }
   };
 
-  // Enviar formulario con control de estado updating
+  // Enviar formulario con SweetAlert
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // Validate if at least we have an image (either existing or new one)
+    if (!imagenFile && !imagenPreview) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Imagen requerida',
+        text: 'El curso debe tener una imagen. Por favor selecciona una.',
+        confirmButtonColor: '#8BAE52'
+      });
+      return;
+    }
 
     setUpdating(true);  // bloquear formulario y mostrar spinner
 
     try {
-      const token = localStorage.getItem("token"); // Ajusta según donde guardes el token
+      const token = localStorage.getItem("token");
 
       if (!token) {
-        alert("No autorizado. Por favor inicia sesión.");
+        Swal.fire({
+          icon: 'error',
+          title: 'No autorizado',
+          text: 'Por favor inicia sesión nuevamente.',
+          confirmButtonColor: '#8BAE52'
+        });
         setUpdating(false);
         return;
       }
@@ -236,16 +253,35 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
         },
       });
 
-      if (window.confirm("Curso actualizado con éxito")) {
-        window.location.reload();
-      }
+      // Replace window.confirm with SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: '¡Curso actualizado!',
+        text: 'Los cambios han sido guardados exitosamente.',
+        confirmButtonColor: '#8BAE52',
+        confirmButtonText: 'OK'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.reload();
+        }
+      });
     } catch (error: any) {
       console.error("Error actualizando curso:", error);
+      
+      let errorMessage = 'Error al actualizar el curso. Intenta nuevamente.';
+      
       if (error.response?.status === 401) {
-        alert("No autorizado. Por favor inicia sesión de nuevo.");
-      } else {
-        alert("Error al actualizar el curso. Intenta nuevamente.");
+        errorMessage = 'No autorizado. Por favor inicia sesión de nuevo.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonColor: '#8BAE52'
+      });
     } finally {
       setUpdating(false);
     }
@@ -651,27 +687,40 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
                           type="button"
                           className="ml-2 text-red-500 hover:underline"
                           onClick={() => {
-                            setModulos(prev => {
-                              const nuevos = [...prev];
-                              // Copia el array de preguntas para evitar referencias compartidas
-                              const preguntas = [...nuevos[index].quiz.preguntas];
-                              preguntas.splice(pi, 1); // Elimina solo la pregunta seleccionada
-                              nuevos[index] = {
-                                ...nuevos[index],
-                                quiz: { ...nuevos[index].quiz, preguntas },
-                              };
-                              // Limpia edición si corresponde
-                              if (nuevos[index].editandoPreguntaIndex === pi) {
-                                nuevos[index].editandoPreguntaIndex = null;
-                                nuevos[index].editPreguntaTexto = "";
-                                nuevos[index].editOpciones = [];
-                              } else if (
-                                typeof nuevos[index].editandoPreguntaIndex === "number" &&
-                                nuevos[index].editandoPreguntaIndex > pi
-                              ) {
-                                nuevos[index].editandoPreguntaIndex = nuevos[index].editandoPreguntaIndex - 1;
+                            Swal.fire({
+                              title: '¿Eliminar pregunta?',
+                              text: '¿Estás seguro de que deseas eliminar esta pregunta? Esta acción no se puede deshacer.',
+                              icon: 'warning',
+                              showCancelButton: true,
+                              confirmButtonColor: '#8BAE52',
+                              cancelButtonColor: '#d33',
+                              confirmButtonText: 'Sí, eliminar',
+                              cancelButtonText: 'Cancelar'
+                            }).then((result) => {
+                              if (result.isConfirmed) {
+                                setModulos(prev => {
+                                  const nuevos = [...prev];
+                                  // Copia el array de preguntas para evitar referencias compartidas
+                                  const preguntas = [...nuevos[index].quiz.preguntas];
+                                  preguntas.splice(pi, 1); // Elimina solo la pregunta seleccionada
+                                  nuevos[index] = {
+                                    ...nuevos[index],
+                                    quiz: { ...nuevos[index].quiz, preguntas },
+                                  };
+                                  // Limpia edición si corresponde
+                                  if (nuevos[index].editandoPreguntaIndex === pi) {
+                                    nuevos[index].editandoPreguntaIndex = null;
+                                    nuevos[index].editPreguntaTexto = "";
+                                    nuevos[index].editOpciones = [];
+                                  } else if (
+                                    typeof nuevos[index].editandoPreguntaIndex === "number" &&
+                                    nuevos[index].editandoPreguntaIndex > pi
+                                  ) {
+                                    nuevos[index].editandoPreguntaIndex = nuevos[index].editandoPreguntaIndex - 1;
+                                  }
+                                  return nuevos;
+                                });
                               }
-                              return nuevos;
                             });
                           }}
                           disabled={updating}

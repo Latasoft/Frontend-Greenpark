@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import Swal from 'sweetalert2'; // Add this import
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -103,19 +104,39 @@ const CourseCreator = () => {
 
   const validarFormulario = (): boolean => {
     if (duracionHoras === "" || duracionHoras < 0) {
-      alert("Por favor ingresa una duración válida.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de validación',
+        text: 'Por favor ingresa una duración válida.',
+        confirmButtonColor: '#8BAE52'
+      });
       return false;
     }
     if (!imagen) {
-      alert("La imagen del curso es obligatoria.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Imagen requerida',
+        text: 'Debes seleccionar una imagen para el curso.',
+        confirmButtonColor: '#8BAE52'
+      });
       return false;
     }
     if (!titulo.trim()) {
-      alert("El título del curso es obligatorio.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Título requerido',
+        text: 'El título del curso es obligatorio.',
+        confirmButtonColor: '#8BAE52'
+      });
       return false;
     }
     if (fechaInicio && fechaTermino && fechaInicio > fechaTermino) {
-      alert("La fecha de inicio no puede ser mayor que la fecha de término.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error en fechas',
+        text: 'La fecha de inicio no puede ser mayor que la fecha de término.',
+        confirmButtonColor: '#8BAE52'
+      });
       return false;
     }
     return true;
@@ -152,7 +173,15 @@ const CourseCreator = () => {
       const res = await axios.post(`${baseURL}/api/cursos`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert("Curso creado exitosamente.");
+      
+      // Replace alert with SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: '¡Curso creado!',
+        text: 'El curso ha sido creado exitosamente.',
+        confirmButtonColor: '#8BAE52'
+      });
+      
       console.log("Curso creado:", res.data);
 
       // Resetear formulario
@@ -171,7 +200,14 @@ const CourseCreator = () => {
       setModulos([]);
     } catch (error) {
       console.error("Error al crear curso:", error);
-      alert("Hubo un error al crear el curso.");
+      
+      // Replace alert with SweetAlert
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Hubo un problema al crear el curso. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52'
+      });
     } finally {
       setLoading(false);
     }
