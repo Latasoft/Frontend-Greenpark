@@ -24,7 +24,7 @@ const Header = () => {
     if (userRole === 'admin') {
       navigate('/admin/profile');
     } else if (['estudiante', 'docente', 'comunidad'].includes(userRole)) {
-      navigate('/user');
+      navigate('/user/profile'); // Changed from /user to /user/profile
     } else {
       navigate('/');
     }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import Profile from '../Admin-Panel/components/Profile';
 import UserCourses from './components/UserCourses';
 import Messages from './components/UserMessagesPage';
@@ -103,9 +103,11 @@ const UserPanel = () => {
         </header>
         <main className="p-6">
           <Routes>
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/courses" element={<UserCourses />} />
-            <Route path="/messages" element={<Messages />} />
+            {/* Add this redirect route */}
+            <Route path="/" element={<Navigate to="profile" replace />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="courses" element={<UserCourses />} />
+            <Route path="messages" element={<Messages />} />
             <Route path="*" element={<div>Contenido en desarrollo</div>} />
           </Routes>
         </main>

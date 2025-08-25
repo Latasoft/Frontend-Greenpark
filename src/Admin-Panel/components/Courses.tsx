@@ -8,7 +8,7 @@ interface Curso {
   estado: string;
   dirigidoA: string;
   cantidadAccesosQuiz: number;
-  cantidadParticipantes?: number; // agregado para mostrar participantes
+  cantidadParticipantes?: number;
 }
 
 const baseURL =
@@ -22,9 +22,17 @@ const Courses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accionandoId, setAccionandoId] = useState<string | null>(null);
+  const [participantCache, setParticipantCache] = useState<Record<string, number>>({});
+  // Add new state to track loading participants
+  const [loadingParticipants, setLoadingParticipants] = useState<Record<string, boolean>>({});
 
   // Función para obtener cantidad de participantes por curso
   const fetchCantidadParticipantes = async (cursoId: string): Promise<number> => {
+    // Check cache first
+    if (participantCache[cursoId] !== undefined) {
+      return participantCache[cursoId];
+    }
+    
     try {
       const token = localStorage.getItem('token') || '';
       const res = await fetch(`${baseURL}/api/cursos/${cursoId}/cantidadParticipantes`, {
@@ -34,9 +42,38 @@ const Courses: React.FC = () => {
       });
       if (!res.ok) throw new Error('Error al obtener cantidad de participantes');
       const data = await res.json();
-      return data.cantidadParticipantes || 0;
+      const count = data.cantidadParticipantes || 0;
+      
+      // Update cache
+      setParticipantCache(prev => ({
+        ...prev,
+        [cursoId]: count
+      }));
+      
+      return count;
     } catch {
       return 0;
+    }
+  };
+
+  // Add a batchFetchParticipantes function
+  const batchFetchParticipantes = async (cursoIds: string[]): Promise<Record<string, number>> => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      // Create a new endpoint in your backend that accepts multiple IDs
+      const res = await fetch(`${baseURL}/api/cursos/participantes-batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cursoIds })
+      });
+      
+      if (!res.ok) throw new Error('Error al obtener cantidades de participantes');
+      return await res.json();
+    } catch {
+      return {};
     }
   };
 
@@ -47,22 +84,52 @@ const Courses: React.FC = () => {
       const res = await fetch(`${baseURL}/api/cursos/lista`);
       if (!res.ok) throw new Error('Error al cargar los cursos');
       const data = await res.json();
-
-      const cursosConParticipantes = await Promise.all(
-        data.map(async (curso: any) => {
-          const cantidadParticipantes = await fetchCantidadParticipantes(curso.id);
-          return {
-            ...curso,
-            cantidadParticipantes,
-          };
-        })
+      
+      // Set courses immediately without participant counts
+      setCourses(data);
+      setLoading(false);
+      
+      // Initialize loading state for all courses
+      const loadingState: Record<string, boolean> = {};
+      data.forEach((curso: Curso) => {
+        loadingState[curso.id] = true;
+      });
+      setLoadingParticipants(loadingState);
+      
+      // Load participant counts in the background
+      data.forEach(async (curso: Curso) => {
+        const cantidadParticipantes: number = await fetchCantidadParticipantes(curso.id);
+        setCourses((prevCourses: Curso[]) =>
+          prevCourses.map((c: Curso) =>
+            c.id === curso.id ? { ...c, cantidadParticipantes } : c
+          )
+        );
+        // Mark this course's participants as loaded
+        setLoadingParticipants(prev => ({
+          ...prev,
+          [curso.id]: false
+        }));
+      });
+      
+      // Batch participant fetching
+      const cursoIds = data.map((curso: Curso) => curso.id);
+      const participantesData = await batchFetchParticipantes(cursoIds);
+      setCourses(prevCourses => 
+        prevCourses.map(c => ({
+          ...c,
+          cantidadParticipantes: participantesData[c.id] || c.cantidadParticipantes
+        }))
       );
-
-      setCourses(cursosConParticipantes);
-      setError(null);
+      
+      // Mark all courses as loaded after batch fetch
+      const completedLoadingState: Record<string, boolean> = {};
+      data.forEach((curso: Curso) => {
+        completedLoadingState[curso.id] = false;
+      });
+      setLoadingParticipants(completedLoadingState);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
       setLoading(false);
     }
   };
@@ -180,7 +247,17 @@ const handlePublicarCurso = async (cursoId: string) => {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">{course.dirigidoA}</td>
                 <td className="px-6 py-4 text-sm text-gray-900">
-                  {course.cantidadParticipantes ?? 0} alumnos
+                  {loadingParticipants[course.id] ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin h-4 w-4 mr-2 text-[#8BAE52]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Cargando...</span>
+                    </div>
+                  ) : (
+                    <span>{course.cantidadParticipantes ?? 0} alumnos</span>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap gap-2">
