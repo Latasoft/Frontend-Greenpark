@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import Swal from 'sweetalert2';
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -26,12 +27,25 @@ const UserCourses = () => {
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const CACHE_KEY = 'user_courses_cache';
+
   useEffect(() => {
     async function fetchCourses() {
       try {
         setLoading(true);
-        setError(null);
-
+        
+        // Intentar cargar desde caché mientras esperamos la API
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+          const { courses, timestamp } = JSON.parse(cachedData);
+          const isCacheValid = Date.now() - timestamp < 5 * 60 * 1000; // 5 minutos
+          
+          if (isCacheValid) {
+            setCourses(courses);
+            setLoading(false);
+          }
+        }
+        
         const token = localStorage.getItem("token");
         if (!token) {
           setError("No se encontró token de autenticación.");
@@ -71,6 +85,12 @@ const UserCourses = () => {
               : 0,
         }));
 
+        // Guardar en caché
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          courses: cursosNormalizados,
+          timestamp: Date.now()
+        }));
+        
         setCourses(cursosNormalizados);
       } catch (err: any) {
         setError(err.message || "Error desconocido");
@@ -83,8 +103,18 @@ const UserCourses = () => {
   }, []);
 
   async function handleDeleteCurso(cursoId: string) {
-    const confirm = window.confirm("¿Seguro quieres eliminar este curso de tu lista?");
-    if (!confirm) return;
+    const result = await Swal.fire({
+      title: '¿Eliminar curso?',
+      text: '¿Seguro quieres eliminar este curso de tu lista?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -110,13 +140,39 @@ const UserCourses = () => {
         // Actualizar la lista local removiendo el curso borrado
         setCourses((prev) => prev.filter((c) => c.id !== cursoId));
       } catch (err: any) {
-        setError(err.message || "Error al eliminar el curso.");
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: err.message || 'Error al eliminar el curso',
+          confirmButtonColor: '#8BAE52'
+        });
       } finally {
         setDeletingCourseId(null);
       }
     }
 
-  if (loading) return <p>Cargando cursos...</p>;
+  if (loading) return (
+    <div className="space-y-4 animate-pulse">
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="bg-white rounded-lg shadow overflow-hidden flex justify-between items-center">
+          <div className="p-6 flex-1 w-full">
+            <div className="flex justify-between items-start mb-2">
+              <div className="h-5 bg-gray-200 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-16"></div>
+            </div>
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+            <div className="relative pt-1">
+              <div className="flex mb-2 items-center justify-end">
+                <div className="h-3 bg-gray-200 rounded w-8"></div>
+              </div>
+              <div className="overflow-hidden h-2 mb-4 rounded bg-gray-200"></div>
+            </div>
+          </div>
+          <div className="p-4 h-10 w-10"></div>
+        </div>
+      ))}
+    </div>
+  );
   if (error) return <p className="text-red-600">Error: {error}</p>;
 
   if (courses.length === 0) {
