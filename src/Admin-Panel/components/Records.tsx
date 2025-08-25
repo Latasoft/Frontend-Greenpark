@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import UserDetailModal from './UserDetailModal';
+import Swal from 'sweetalert2';
 
 interface Usuario {
   id: string;
@@ -22,6 +23,7 @@ const Records = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchUsuarios = async () => {
     try {
@@ -62,18 +64,56 @@ const Records = () => {
     }
   };
 
-  const eliminarUsuario = async (id: string) => {
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    // Show SweetAlert confirmation dialog
+    const result = await Swal.fire({
+      title: '¿Eliminar usuario?',
+      text: `¿Estás seguro de eliminar al usuario ${userName}? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    // If user cancels, do nothing
+    if (!result.isConfirmed) return;
+
+    // Set loading state
+    setDeletingId(userId);
+
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${baseURL}/api/auth/users/${id}`, {
+      const response = await fetch(`${baseURL}/api/auth/usuario/${userId}`, {
+        method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      fetchUsuarios();
+
+      if (!response.ok) throw new Error('Error al eliminar el usuario');
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Usuario eliminado',
+        text: 'El usuario ha sido eliminado exitosamente',
+        confirmButtonColor: '#8BAE52',
+      });
+
+      // Refresh the user list
+      await fetchUsuarios();
     } catch (error) {
-      console.error('Error al eliminar usuario', error);
-      alert('No se pudo eliminar el usuario');
+      // Show error message
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al eliminar el usuario. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52',
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -126,10 +166,11 @@ const Records = () => {
                         </button>
                       )}
                       <button
-                        onClick={() => eliminarUsuario(user.id)}
-                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                        onClick={() => handleDeleteUser(user.id, user.nombre)}
+                        disabled={deletingId === user.id}
+                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
                       >
-                        Eliminar
+                        {deletingId === user.id ? 'Eliminando...' : 'Eliminar'}
                       </button>
                       <button
                         onClick={() => setSelectedUser(user)}

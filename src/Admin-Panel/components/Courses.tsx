@@ -190,7 +190,23 @@ const Courses: React.FC = () => {
   };
 
   // Also let's add SweetAlert to the publish function
-  const handlePublicarCurso = async (cursoId: string) => {
+  const handlePublicarCurso = async (cursoId: string, cursoTitulo: string) => {
+    // Show confirmation dialog before publishing
+    const result = await Swal.fire({
+      title: '¿Publicar curso?',
+      text: `¿Estás seguro de publicar el curso "${cursoTitulo}"? Una vez publicado, estará disponible para todos los usuarios.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Sí, publicar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    // If user cancels, do nothing
+    if (!result.isConfirmed) return;
+
+    // Continue with publication if confirmed
     setAccionandoId(cursoId);
     try {
       const token = localStorage.getItem('token');
@@ -334,7 +350,7 @@ const Courses: React.FC = () => {
 
                     {course.estado !== 'publicado' && (
                       <button
-                        onClick={() => handlePublicarCurso(course.id)}
+                        onClick={() => handlePublicarCurso(course.id, course.titulo)}
                         disabled={accionandoId === course.id}
                         className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
                       >
