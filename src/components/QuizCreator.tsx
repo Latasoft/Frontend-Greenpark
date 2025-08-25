@@ -3,7 +3,13 @@
 import { useState } from 'react';
 
 const QuizCreator = () => {
-  const [questions, setQuestions] = useState([]);
+  type Question = {
+    // Define your question properties here, e.g.:
+    // id: number;
+    // text: string;
+  };
+
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleAddQuestion = () => {
