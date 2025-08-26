@@ -23,58 +23,73 @@ const Courses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accionandoId, setAccionandoId] = useState<string | null>(null);
-  const [participantCache, setParticipantCache] = useState<Record<string, number>>({});
   // Add new state to track loading participants
   const [loadingParticipants, setLoadingParticipants] = useState<Record<string, boolean>>({});
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // Función para obtener cantidad de participantes por curso
-  const fetchCantidadParticipantes = async (cursoId: string): Promise<number> => {
-    // Check cache first
-    if (participantCache[cursoId] !== undefined) {
-      return participantCache[cursoId];
-    }
-    
+  const handleVerParticipantes = async (cursoId: string, cursoTitulo: string) => {
+    setLoadingDetails(true);
     try {
-      const token = localStorage.getItem('token') || '';
-      const res = await fetch(`${baseURL}/api/cursos/${cursoId}/cantidadParticipantes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) throw new Error('Error al obtener cantidad de participantes');
-      const data = await res.json();
-      const count = data.cantidadParticipantes || 0;
-      
-      // Update cache
-      setParticipantCache(prev => ({
-        ...prev,
-        [cursoId]: count
-      }));
-      
-      return count;
-    } catch {
-      return 0;
-    }
-  };
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
 
-  // Add a batchFetchParticipantes function
-  const batchFetchParticipantes = async (cursoIds: string[]): Promise<Record<string, number>> => {
-    try {
-      const token = localStorage.getItem('token') || '';
-      // Create a new endpoint in your backend that accepts multiple IDs
-      const res = await fetch(`${baseURL}/api/cursos/participantes-batch`, {
-        method: 'POST',
+      const res = await fetch(`${baseURL}/api/cursos/${cursoId}/participantes`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ cursoIds })
+        }
       });
-      
-      if (!res.ok) throw new Error('Error al obtener cantidades de participantes');
-      return await res.json();
-    } catch {
-      return {};
+
+      if (!res.ok) throw new Error('Error al cargar participantes');
+      const data = await res.json();
+      const participantes = data.participantes || [];
+
+      // Mostrar el Swal con la lista de participantes
+      await Swal.fire({
+        title: `Participantes - ${cursoTitulo}`,
+        html: `
+          <div class="max-h-[400px] overflow-y-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="text-left py-2 px-3 bg-gray-50">Nombre</th>
+                  <th class="text-left py-2 px-3 bg-gray-50">Correo</th>
+                  <th class="text-left py-2 px-3 bg-gray-50">Fecha de registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${participantes.length === 0 
+                  ? `<tr><td colspan="3" class="py-6 text-center text-gray-500">No hay participantes aún.</td></tr>`
+                  : participantes.map((p: any) => `
+                    <tr class="border-b">
+                      <td class="py-2 px-3">${p.nombre}</td>
+                      <td class="py-2 px-3">${p.correo}</td>
+                      <td class="py-2 px-3">${p.registradoEn 
+                        ? new Date(p.registradoEn).toLocaleString() 
+                        : 'Sin fecha'}</td>
+                    </tr>
+                  `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `,
+        width: '800px',
+        showConfirmButton: true,
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#8BAE52',
+        customClass: {
+          htmlContainer: 'overflow-hidden',
+        }
+      });
+
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al cargar los participantes del curso',
+        confirmButtonColor: '#8BAE52'
+      });
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
@@ -86,48 +101,66 @@ const Courses: React.FC = () => {
       if (!res.ok) throw new Error('Error al cargar los cursos');
       const data = await res.json();
       
-      // Set courses immediately without participant counts
+      // Set courses immediately with initial data
       setCourses(data);
       setLoading(false);
-      
-      // Initialize loading state for all courses
-      const loadingState: Record<string, boolean> = {};
-      data.forEach((curso: Curso) => {
-        loadingState[curso.id] = true;
-      });
-      setLoadingParticipants(loadingState);
-      
-      // Load participant counts in the background
-      data.forEach(async (curso: Curso) => {
-        const cantidadParticipantes: number = await fetchCantidadParticipantes(curso.id);
-        setCourses((prevCourses: Curso[]) =>
-          prevCourses.map((c: Curso) =>
-            c.id === curso.id ? { ...c, cantidadParticipantes } : c
-          )
+
+      // Load participant counts for each course
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+
+        const participantPromises = data.map(async (curso: Curso) => {
+          try {
+            const res = await fetch(`${baseURL}/api/cursos/${curso.id}/cantidadParticipantes`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (!res.ok) return 0;
+            const countData = await res.json();
+            return {
+              id: curso.id,
+              count: countData.cantidadParticipantes || 0
+            };
+          } catch {
+            return {
+              id: curso.id,
+              count: 0
+            };
+          }
+        });
+
+        // Initialize loading states
+        const loadingState: Record<string, boolean> = {};
+        data.forEach((curso: Curso) => {
+          loadingState[curso.id] = true;
+        });
+        setLoadingParticipants(loadingState);
+
+        // Wait for all participant counts to load
+        const participantCounts = await Promise.all(participantPromises);
+        
+        // Update courses with participant counts
+        setCourses(prevCourses => 
+          prevCourses.map(course => {
+            const participantData = participantCounts.find(p => p.id === course.id);
+            return {
+              ...course,
+              cantidadParticipantes: participantData?.count || 0
+            };
+          })
         );
-        // Mark this course's participants as loaded
-        setLoadingParticipants(prev => ({
-          ...prev,
-          [curso.id]: false
-        }));
-      });
-      
-      // Batch participant fetching
-      const cursoIds = data.map((curso: Curso) => curso.id);
-      const participantesData = await batchFetchParticipantes(cursoIds);
-      setCourses(prevCourses => 
-        prevCourses.map(c => ({
-          ...c,
-          cantidadParticipantes: participantesData[c.id] || c.cantidadParticipantes
-        }))
-      );
-      
-      // Mark all courses as loaded after batch fetch
-      const completedLoadingState: Record<string, boolean> = {};
-      data.forEach((curso: Curso) => {
-        completedLoadingState[curso.id] = false;
-      });
-      setLoadingParticipants(completedLoadingState);
+
+        // Mark all as loaded
+        const completedLoadingState: Record<string, boolean> = {};
+        data.forEach((curso: Curso) => {
+          completedLoadingState[curso.id] = false;
+        });
+        setLoadingParticipants(completedLoadingState);
+      } catch (err) {
+        console.error('Error loading participant counts:', err);
+      }
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -335,10 +368,11 @@ const Courses: React.FC = () => {
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => navigate(`/admin/courses/participantes/${course.id}`)}
-                      className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white"
+                      onClick={() => handleVerParticipantes(course.id, course.titulo)}
+                      disabled={loadingDetails}
+                      className="px-3 py-1 text-sm border border-[#1A3D33] text-[#1A3D33] rounded-md hover:bg-[#1A3D33] hover:text-white disabled:opacity-50"
                     >
-                      Ver participantes
+                      {loadingDetails ? 'Cargando...' : 'Ver participantes'}
                     </button>
 
                     <button

@@ -293,21 +293,25 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="max-w-4xl mx-auto p-8 space-y-8 bg-white rounded-2xl shadow-lg border border-green-100"
-    >
+    <div className="form-container bg-gray-50">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-green-100 relative form-animation mb-8">
+        <form
+          onSubmit={handleSubmit}
+          className="p-8 space-y-8 relative"
+      >
       <h2 className="text-3xl font-bold text-green-700 border-b pb-4">Editar Curso</h2>
 
-      <input
-        type="text"
-        placeholder="Título del curso"
-        value={titulo}
-        onChange={(e) => setTitulo(e.target.value)}
-        className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none"
-        required
-        disabled={updating}
-      />
+      <div className="transition-all duration-300 ease-in-out transform hover:scale-[1.01]">
+        <input
+          type="text"
+          placeholder="Título del curso"
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          className="w-full border border-green-300 focus:ring-2 focus:ring-green-400 p-3 rounded-lg outline-none transition-colors duration-200"
+          required
+          disabled={updating}
+        />
+      </div>
 
       {/* Imagen y preview */}
       <div className="relative">
@@ -975,6 +979,8 @@ const EditCourse = ({ cursoId }: EditCourseProps) => {
         )}
       </button>
     </form>
+      </div>
+    </div>
   );
 };
 
