@@ -75,7 +75,6 @@ const Profile = ({ }: ProfileProps) => {
   
   // Add new states after existing states
   const [loadingCourses, setLoadingCourses] = useState(true);
-  const [statsVisible, setStatsVisible] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -116,7 +115,6 @@ const Profile = ({ }: ProfileProps) => {
                 cursosCompletados
               }));
               // Trigger animation after courses are loaded
-              setStatsVisible(true);
             } catch (error) {
               console.error('Error loading courses:', error);
             } finally {
