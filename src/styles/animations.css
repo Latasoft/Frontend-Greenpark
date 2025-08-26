@@ -43,8 +43,7 @@
 
 /* Animación para las tarjetas de curso */
 .fade-in {
-  animation: fadeIn 0.5s ease-in-out forwards;
-  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
 .fade-in-up {
@@ -54,9 +53,11 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 

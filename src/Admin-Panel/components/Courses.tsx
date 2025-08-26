@@ -120,7 +120,8 @@ const Courses: React.FC = () => {
         throw new Error('No se encontró token de autenticación');
       }
 
-      const res = await fetch(`${baseURL}/api/cursos/lista?page=${page}&limit=9`, {
+      // Cambiar la URL de /lista a /admin/lista
+      const res = await fetch(`${baseURL}/api/cursos/lista?page=${page}&limit=7`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -147,7 +148,13 @@ const Courses: React.FC = () => {
 
     } catch (error) {
       console.error('Error en fetchCursos:', error);
-      // Error handling can be done with Swal or console.error if needed
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al cargar los cursos. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52'
+      });
+    } finally {
       setLoading(false);
     }
   };

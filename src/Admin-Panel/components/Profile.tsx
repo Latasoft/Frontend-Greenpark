@@ -73,6 +73,10 @@ const Profile = ({ }: ProfileProps) => {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   
+  // Add new states after existing states
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [statsVisible, setStatsVisible] = useState(false);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -85,6 +89,7 @@ const Profile = ({ }: ProfileProps) => {
           return;
         }
 
+        // First phase: Load user profile
         const response = await fetch(`${baseURL}/api/auth/users/${userId}/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
@@ -94,24 +99,35 @@ const Profile = ({ }: ProfileProps) => {
         const data = await response.json();
         
         if (response.ok) {
-          // Obtener cursos completados solo para usuarios no admin
-          let cursosCompletados = 0;
-          if (userRole !== 'admin') {
-            cursosCompletados = await fetchCursosCompletados(userId, token);
-          }
-
           setUserData({
             ...data,
             nombre_pila: data.nombre || '',
             apellido: data.apellido || '',
-            cursosCompletados: cursosCompletados // Actualizar con el número real
           });
           setNewImagen(data.imagenPerfil || '');
+          setLoading(false);
+
+          // Second phase: Load courses stats
+          if (userRole !== 'admin') {
+            try {
+              const cursosCompletados = await fetchCursosCompletados(userId, token);
+              setUserData((prev: any) => ({
+                ...prev,
+                cursosCompletados
+              }));
+              // Trigger animation after courses are loaded
+              setStatsVisible(true);
+            } catch (error) {
+              console.error('Error loading courses:', error);
+            } finally {
+              setLoadingCourses(false);
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-      } finally {
         setLoading(false);
+        setLoadingCourses(false);
       }
     };
 
@@ -490,14 +506,23 @@ const Profile = ({ }: ProfileProps) => {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Estadísticas</h2>
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Cursos inscritos</p>
-                <p className="text-gray-800">{userData.cursosInscritos?.length || 0}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Cursos completados</p>
-                <p className="text-gray-800">{userData.cursosCompletados || 0}</p>
-              </div>
+              {loadingCourses ? (
+                <div className="flex flex-col items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8BAE52] mb-2"></div>
+                  <p className="text-sm text-gray-500">Cargando información de cursos...</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm text-gray-500">Cursos inscritos</p>
+                    <p className="text-gray-800">{userData.cursosInscritos?.length || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Cursos completados</p>
+                    <p className="text-gray-800">{userData.cursosCompletados || 0}</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
