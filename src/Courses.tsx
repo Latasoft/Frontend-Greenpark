@@ -166,28 +166,28 @@ const Courses = () => {
         </div>
       </section>
 
-      {/* Contenedor de cursos con aparición controlada */}
-      <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Contenedor de cursos - MODIFICADO para coincidir con Library */}
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 transition-opacity duration-500 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Cambiado gap-8 a gap-6 y agregado mb-12 para coincidir con Library */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {loading ? (
-            // Skeleton loaders con aparición secuencial
+            // Skeleton loaders actualizados para coincidir con Library
             Array.from({ length: 6 }).map((_, index) => (
               <div 
                 key={index} 
-                className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-full animate-pulse"
+                className="bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col h-full animate-pulse"
                 style={{ animationDelay: `${200 + index * 100}ms` }}
               >
-                {/* Skeleton image */}
+                {/* Contenido del skeleton sin cambios */}
                 <div className="relative">
                   <div className="w-full h-48 bg-gray-200"></div>
-                  {/* Skeleton badge */}
                   <div className="absolute top-4 left-4 bg-gray-200 w-20 h-6 rounded-md"></div>
                 </div>
                 
-                {/* Skeleton content */}
                 <div className="p-6 flex flex-col flex-1">
+                  {/* Contenido interno del skeleton sin cambios */}
                   <div className="flex-1">
                     {/* Skeleton title */}
                     <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -220,16 +220,16 @@ const Courses = () => {
               </div>
             ))
           ) : (
-            // Tarjetas reales con animación secuencial
+            // Tarjetas reales actualizadas para coincidir con Library
             cursos.map((curso, index) => (
               <div
                 key={curso.id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer flex flex-col h-full fade-in"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full fade-in"
                 style={{ animationDelay: `${200 + index * 100}ms` }}
                 onClick={() => navigate(`/cursos/${curso.id}`)}
               >
                 <div className="relative">
-                  <span className="absolute top-4 left-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm capitalize">
+                  <span className="absolute top-4 left-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm capitalize z-10">
                     {curso.dirigidoA || "General"}
                   </span>
                   <img

@@ -75,13 +75,19 @@ const EnviarMensaje: React.FC<EnviarMensajeProps> = ({
           setLoading(true);
           const token = localStorage.getItem('token');
           
+          // Extraer nombre de usuario del email como fallback
+          const emailUsername = destinatario.split('@')[0];
+          
           const response = await axios.post(
-            `${baseURL}/api/messages/send`,
+            `${baseURL}/api/mensajes`,
             {
               from: currentUserEmail,
               fromName: currentUserName,
               fromRole: currentUserRole,
               to: destinatario,
+              // Campos adicionales obligatorios
+              toName: emailUsername || "Usuario", // Usar parte del email como nombre por defecto
+              toRole: "usuario", // Rol por defecto
               subject: asunto,
               content: mensaje,
             },
