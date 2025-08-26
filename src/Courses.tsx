@@ -142,25 +142,36 @@ const Courses = () => {
       return;
     }
 
-    // Si ya está inscrito, navegar directamente
-    if (cursosInscritos[curso.id]) {
+    // Verificar si está inscrito usando el estado inscripciones
+    const inscrito = inscripciones[curso.id];
+
+    if (inscrito) {
+      // Si está inscrito, navegar directamente
       navigate(`/cursos/${curso.id}`);
       return;
     }
 
     // Si no está inscrito, mostrar confirmación
-    const r = await Swal.fire({
+    const result = await Swal.fire({
       title: `¿Estás seguro de comenzar el curso "${curso.titulo}"?`,
+      text: 'Podrás acceder al contenido una vez inscrito',
+      icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, comenzar',
+      cancelButtonText: 'Cancelar',
       confirmButtonColor: '#8BAE52',
-      cancelButtonText: 'Cancelar'
+      cancelButtonColor: '#d33'
     });
     
-    if (!r.isConfirmed) return;
+    if (!result.isConfirmed) return;
     
     try {
       await startCourse(curso.id);
+      // Actualizar el estado local de inscripciones
+      setInscripciones(prev => ({
+        ...prev,
+        [curso.id]: true
+      }));
       navigate(`/cursos/${curso.id}`);
     } catch (error) {
       Swal.fire({
