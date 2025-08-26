@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {useAuth} from "./hooks/useAuth";
 import axios from "axios";
 import "./styles/animations.css";
+import Swal from "sweetalert2";
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -121,6 +122,28 @@ const Courses = () => {
     fetchCursos();
   }, [tipo, destacados]);
 
+  const startCourse = async (cursoId: string) => {
+    const token = localStorage.getItem('token') || '';
+    const res = await fetch(`${baseURL}/api/cursos/${cursoId}/inscribir`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('No se pudo inscribir');
+    return await res.json();
+  };
+
+  // ejemplo: usar swal confirm y luego inscribir y navegar
+  const handleConfirmStartCourse = async (curso: Curso) => {
+    const r = await Swal.fire({
+      title: `¿Estás seguro de comenzar el curso "${curso.titulo}"?`,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, comenzar'
+    });
+    if (!r.isConfirmed) return;
+    await startCourse(curso.id);
+    navigate(`/cursos/${curso.id}`);
+  };
+
   // Componente principal que incluye el banner y el contenido
   return (
     <div className="min-h-screen bg-white">
@@ -226,7 +249,7 @@ const Courses = () => {
                 key={curso.id}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full fade-in"
                 style={{ animationDelay: `${200 + index * 100}ms` }}
-                onClick={() => navigate(`/cursos/${curso.id}`)}
+                onClick={() => handleConfirmStartCourse(curso)}
               >
                 <div className="relative">
                   <span className="absolute top-4 left-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm capitalize z-10">

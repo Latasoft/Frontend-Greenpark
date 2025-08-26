@@ -464,11 +464,9 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
               <p className="text-gray-800">{userData.correo || 'No especificado'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Fecha de registro</p>
+              <p className="text-sm text-gray-500">Fecha de nacimiento</p>
               <p className="text-gray-800">
-                {userData.fechaRegistro 
-                  ? new Date(userData.fechaRegistro).toLocaleDateString() 
-                  : 'No disponible'}
+                {userData.fechaNacimiento || 'No disponible'}
               </p>
             </div>
           </div>
@@ -484,10 +482,6 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
             <div>
               <p className="text-sm text-gray-500">Cursos completados</p>
               <p className="text-gray-800">{userData.cursosCompletados?.length || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Certificaciones</p>
-              <p className="text-gray-800">{userData.certificaciones?.length || 0}</p>
             </div>
           </div>
         </div>
