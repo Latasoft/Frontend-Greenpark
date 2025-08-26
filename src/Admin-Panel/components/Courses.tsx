@@ -13,6 +13,15 @@ interface Curso {
   cantidadParticipantes?: number;
 }
 
+// Añadir a las interfaces existentes
+interface PaginationData {
+  total: number;
+  page: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 const baseURL =
   window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
@@ -29,6 +38,13 @@ const Courses: React.FC = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   // Agregar estado para animación de carga
   const [isVisible, setIsVisible] = useState(false);
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: 1,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
 
   const handleVerParticipantes = async (cursoId: string, cursoTitulo: string) => {
     setLoadingDetails(true);
@@ -97,7 +113,7 @@ const Courses: React.FC = () => {
   };
 
   // Obtener cursos y luego agregar cantidad de participantes a cada uno
-  const fetchCursos = async () => {
+  const fetchCursos = async (page: number = 1) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -105,7 +121,7 @@ const Courses: React.FC = () => {
         throw new Error('No se encontró token de autenticación');
       }
 
-      const res = await fetch(`${baseURL}/api/cursos/lista`, {
+      const res = await fetch(`${baseURL}/api/cursos/lista?page=${page}&limit=9`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -117,44 +133,18 @@ const Courses: React.FC = () => {
       }
 
       const data = await res.json();
-      console.log('Cursos obtenidos:', data); // Para debugging
-      
-      // Asegúrate de que data es un array
-      const cursosArray = Array.isArray(data.cursos) ? data.cursos : data;
-      setCourses(cursosArray);
+      if (!data.cursos || !Array.isArray(data.cursos)) {
+        throw new Error('Formato de respuesta inválido');
+      }
 
-      // Cargar cantidad de participantes
-      const participantPromises = cursosArray.map(async (curso: Curso) => {
-        try {
-          const participantesRes = await fetch(
-            `${baseURL}/api/cursos/${curso.id}/cantidadParticipantes`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            }
-          );
-          
-          if (!participantesRes.ok) return { id: curso.id, count: 0 };
-          const countData = await participantesRes.json();
-          return {
-            id: curso.id,
-            count: countData.cantidadParticipantes || 0
-          };
-        } catch (error) {
-          console.error(`Error al obtener participantes para curso ${curso.id}:`, error);
-          return { id: curso.id, count: 0 };
-        }
+      setCourses(data.cursos);
+      setPagination({
+        total: data.pagination.total,
+        page: data.pagination.page,
+        totalPages: data.pagination.totalPages,
+        hasNextPage: data.pagination.hasNextPage,
+        hasPrevPage: data.pagination.hasPrevPage
       });
-
-      const participantCounts = await Promise.all(participantPromises);
-      
-      setCourses(prevCurses => 
-        prevCurses.map(course => ({
-          ...course,
-          cantidadParticipantes: participantCounts.find(p => p.id === course.id)?.count || 0
-        }))
-      );
 
     } catch (error) {
       console.error('Error en fetchCursos:', error);
@@ -165,9 +155,9 @@ const Courses: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCursos();
+    fetchCursos(pagination.page);
     setIsVisible(true);
-  }, []);
+  }, [pagination.page]);
 
   // Replace the handleEliminarCurso function with this improved version
   const handleEliminarCurso = async (id: string) => {
@@ -205,7 +195,7 @@ const Courses: React.FC = () => {
         confirmButtonColor: '#8BAE52'
       });
       
-      await fetchCursos();
+      await fetchCursos(pagination.page);
     } catch (error) {
       // Show error message
       Swal.fire({
@@ -268,7 +258,7 @@ const Courses: React.FC = () => {
         confirmButtonColor: '#8BAE52'
       });
       
-      await fetchCursos();
+      await fetchCursos(pagination.page);
     } catch {
       Swal.fire({
         icon: 'error',
@@ -444,6 +434,53 @@ const Courses: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Paginador */}
+      <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+        <div className="flex items-center">
+          <p className="text-sm text-gray-700">
+            Mostrando{' '}
+            <span className="font-medium">{courses.length}</span>{' '}
+            de{' '}
+            <span className="font-medium">{pagination.total}</span>{' '}
+            cursos - Página{' '}
+            <span className="font-medium">{pagination.page}</span>{' '}
+            de{' '}
+            <span className="font-medium">{pagination.totalPages}</span>
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            disabled={!pagination.hasPrevPage || loading}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors
+              ${pagination.hasPrevPage && !loading
+                ? 'bg-[#8BAE52] text-white hover:bg-[#1A3D33]'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            disabled={!pagination.hasNextPage || loading}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors
+              ${pagination.hasNextPage && !loading
+                ? 'bg-[#8BAE52] text-white hover:bg-[#1A3D33]'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8BAE52]"></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
