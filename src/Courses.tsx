@@ -10,6 +10,7 @@ const baseURL =
     ? "http://localhost:3000"
     : "https://greenpark-backend-0ua6.onrender.com";
 
+// Modificar la interfaz Curso
 interface Curso {
   id: string;
   titulo: string;
@@ -22,6 +23,7 @@ interface Curso {
   estado?: string;
   rol?: string;
   fechaInicio?: string; // Fecha de inicio del curso
+  inscrito?: boolean;
 }
 
 const Courses = () => {
@@ -76,10 +78,14 @@ const Courses = () => {
         
         if (tipo) {
           // Si viene de la ruta /cursos/dirigido/:tipo
-          url += `dirigido/${tipo}?page=${currentPage}&limit=9`;
+          url += `dirigido/${tipo}?page=${currentPage}&limit=9&sortOrder=${sortOrder}`;
         } else {
           // Ruta normal de cursos
-          url += `lista?page=${currentPage}&limit=9`;
+          url += `lista?page=${currentPage}&limit=9&sortOrder=${sortOrder}`;
+        }
+
+        if (searchTerm) {
+          url += `&search=${encodeURIComponent(searchTerm)}`;
         }
 
         const response = await axios.get(url);
@@ -90,11 +96,11 @@ const Courses = () => {
         setHasNextPage(pagination.hasNextPage);
         setHasPrevPage(pagination.hasPrevPage);
 
-        // Verificar inscripción para cada curso
+        // Actualizar cursosInscritos usando los datos de la respuesta
         const inscripciones: Record<string, boolean> = {};
-        for (const curso of cursosData) {
-          inscripciones[curso.id] = await verificarInscripcion(curso.id);
-        }
+        cursosData.forEach((curso: Curso) => {
+          inscripciones[curso.id] = curso.inscrito || false;
+        });
         setCursosInscritos(inscripciones);
 
       } catch (err) {
@@ -105,8 +111,9 @@ const Courses = () => {
       }
     };
 
-    fetchCursos();
-  }, [tipo, currentPage]);
+    const timeoutId = setTimeout(fetchCursos, 300);
+    return () => clearTimeout(timeoutId);
+  }, [tipo, currentPage, sortOrder, searchTerm]);
   
   const startCourse = async (cursoId: string) => {
     const token = localStorage.getItem('token') || '';
