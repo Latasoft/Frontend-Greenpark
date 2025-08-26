@@ -1,0 +1,59 @@
+/* Si el archivo no existe, créalo */
+
+/* Animación para el banner */
+@keyframes bannerReveal {
+  from {
+    transform: scale(1.05);
+    filter: brightness(0.8);
+  }
+  to {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.banner-animation {
+  animation: bannerReveal 1.5s ease-out forwards;
+}
+
+/* Animación para los textos que suben */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up-animation {
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+/* Clases de retraso para animaciones escalonadas */
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Animación para las tarjetas de curso */
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
