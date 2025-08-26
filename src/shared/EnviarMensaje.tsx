@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 interface EnviarMensajeProps {
   currentUserEmail: string;
@@ -17,129 +18,120 @@ const EnviarMensaje: React.FC<EnviarMensajeProps> = ({
   currentUserName,
   currentUserRole,
 }) => {
-  const [to, setTo] = useState('');
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
 
-
-
-  const handleEnviar = async () => {
-    if (!to.trim() || !subject.trim() || !content.trim()) {
-      setError('Por favor completa todos los campos.');
-      setSuccess(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError('');
-      await axios.post(`${baseURL}/api/mensajes`, {
-        from: currentUserEmail,
-        fromName: currentUserName,
-        fromRole: currentUserRole,
-        to: to.trim(),
-        subject: subject.trim(),
-        content: content.trim(),
-      });
-
-      setTo('');
-      setSubject('');
-      setContent('');
-      setSuccess(true);
-      setError('');
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error al enviar mensaje:', err);
-      setError('Ocurrió un error al enviar el mensaje.');
-      setSuccess(false);
-    } finally {
-      setLoading(false);
-    }
+  const openMessageDialog = () => {
+    Swal.fire({
+      title: 'Enviar nuevo mensaje',
+      html: `
+        <div class="mb-4">
+          <label for="swal-destinatario" class="block text-sm font-medium text-gray-700 mb-1 text-left">Destinatario:</label>
+          <input 
+            id="swal-destinatario" 
+            type="email" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8BAE52] focus:border-transparent" 
+            placeholder="correo@ejemplo.com"
+          >
+        </div>
+        <div class="mb-4">
+          <label for="swal-asunto" class="block text-sm font-medium text-gray-700 mb-1 text-left">Asunto:</label>
+          <input id="swal-asunto" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8BAE52] focus:border-transparent" placeholder="Escribe el asunto">
+        </div>
+        <div>
+          <label for="swal-mensaje" class="block text-sm font-medium text-gray-700 mb-1 text-left">Mensaje:</label>
+          <textarea id="swal-mensaje" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8BAE52] focus:border-transparent" placeholder="Escribe tu mensaje"></textarea>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Enviar mensaje',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#d33',
+      showLoaderOnConfirm: true,
+      allowOutsideClick: () => !Swal.isLoading(),
+      preConfirm: async () => {
+        const destinatario = (document.getElementById('swal-destinatario') as HTMLInputElement).value;
+        const asunto = (document.getElementById('swal-asunto') as HTMLInputElement).value;
+        const mensaje = (document.getElementById('swal-mensaje') as HTMLTextAreaElement).value;
+        
+        // Validar formato de correo electrónico
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!destinatario || !emailRegex.test(destinatario)) {
+          Swal.showValidationMessage('Por favor ingresa un correo electrónico válido');
+          return false;
+        }
+        
+        if (!asunto) {
+          Swal.showValidationMessage('Por favor ingresa un asunto');
+          return false;
+        }
+        
+        if (!mensaje) {
+          Swal.showValidationMessage('Por favor escribe un mensaje');
+          return false;
+        }
+        
+        try {
+          setLoading(true);
+          const token = localStorage.getItem('token');
+          
+          const response = await axios.post(
+            `${baseURL}/api/messages/send`,
+            {
+              from: currentUserEmail,
+              fromName: currentUserName,
+              fromRole: currentUserRole,
+              to: destinatario,
+              subject: asunto,
+              content: mensaje,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          
+          return response.data;
+        } catch (error: any) {
+          console.error('Error sending message:', error);
+          Swal.showValidationMessage(
+            `Error al enviar mensaje: ${error.response?.data?.message || error.message}`
+          );
+          return false;
+        } finally {
+          setLoading(false);
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: '¡Mensaje enviado!',
+          text: 'Tu mensaje ha sido enviado correctamente.',
+          icon: 'success',
+          confirmButtonColor: '#8BAE52'
+        });
+      }
+    });
   };
 
   return (
-    <div className="mb-4">
+    <div className="mb-6">
       <button
-        className="bg-[#1A3D33] text-white px-4 py-2 rounded hover:bg-[#154d40] mb-2 focus:outline-none focus:ring-2 focus:ring-[#1A3D33]"
-        onClick={() => setShowForm((prev) => !prev)}
-        aria-expanded={showForm}
-        aria-controls="form-enviar-mensaje"
+        onClick={openMessageDialog}
+        className="flex items-center px-4 py-2 bg-[#8BAE52] text-white rounded hover:bg-[#1A3D33] transition-colors"
+        disabled={loading}
       >
-        {showForm ? 'Ocultar formulario' : 'Enviar nuevo mensaje'}
-      </button>
-
-      {showForm && (
-        <form
-          id="form-enviar-mensaje"
-          className="bg-white border rounded-lg p-4 shadow w-full max-w-2xl space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleEnviar();
-          }}
-          noValidate
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          className="h-5 w-5 mr-2" 
+          viewBox="0 0 20 20" 
+          fill="currentColor"
         >
-          <div>
-            <label htmlFor="to" className="block text-sm font-medium text-gray-700">
-              Para (correo):
-            </label>
-            <input
-              id="to"
-              type="email"
-              placeholder="Correo del destinatario"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:border-[#1A3D33]"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-              Asunto:
-            </label>
-            <input
-              id="subject"
-              type="text"
-              placeholder="Asunto"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:border-[#1A3D33]"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-              Mensaje:
-            </label>
-            <textarea
-              id="content"
-              placeholder="Escribe tu mensaje..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:border-[#1A3D33]"
-              rows={4}
-              required
-            />
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <button
-              type="submit"
-              disabled={loading || !to.trim() || !subject.trim() || !content.trim()}
-              className="bg-[#1A3D33] text-white px-4 py-2 rounded hover:bg-[#154d40] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#1A3D33]"
-            >
-              {loading ? 'Enviando...' : 'Enviar'}
-            </button>
-            {success && <p className="text-green-600 text-sm">Mensaje enviado correctamente.</p>}
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-          </div>
-        </form>
-      )}
+          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+        </svg>
+        {loading ? 'Enviando...' : 'Enviar nuevo mensaje'}
+      </button>
     </div>
   );
 };
