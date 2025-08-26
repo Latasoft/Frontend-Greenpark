@@ -120,14 +120,48 @@ const Courses = () => {
 
   // ejemplo: usar swal confirm y luego inscribir y navegar
   const handleConfirmStartCourse = async (curso: Curso) => {
+    // Obtener el rol del usuario del localStorage
+    const userRole = localStorage.getItem('userRole');
+    
+    // Validar acceso según rol
+    if (curso.dirigidoA && curso.dirigidoA !== userRole) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Acceso Restringido',
+        text: `Este curso solo está disponible para usuarios tipo ${curso.dirigidoA}`,
+        confirmButtonColor: '#8BAE52'
+      });
+      return;
+    }
+
+    // Si ya está inscrito, navegar directamente
+    if (cursosInscritos[curso.id]) {
+      navigate(`/cursos/${curso.id}`);
+      return;
+    }
+
+    // Si no está inscrito, mostrar confirmación
     const r = await Swal.fire({
       title: `¿Estás seguro de comenzar el curso "${curso.titulo}"?`,
       showCancelButton: true,
-      confirmButtonText: 'Sí, comenzar'
+      confirmButtonText: 'Sí, comenzar',
+      confirmButtonColor: '#8BAE52',
+      cancelButtonText: 'Cancelar'
     });
+    
     if (!r.isConfirmed) return;
-    await startCourse(curso.id);
-    navigate(`/cursos/${curso.id}`);
+    
+    try {
+      await startCourse(curso.id);
+      navigate(`/cursos/${curso.id}`);
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo inscribir al curso. Intente nuevamente.',
+        confirmButtonColor: '#8BAE52'
+      });
+    }
   };
 
   // Agregar función para verificar inscripción
