@@ -45,7 +45,8 @@ const Courses = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPrevPage, setHasPrevPage] = useState(false);
-  
+  const [cursosInscritos, setCursosInscritos] = useState<Record<string, boolean>>({});
+
   // Animación del banner inmediata al montar el componente
   useEffect(() => {
     // Activar banner inmediatamente
@@ -88,6 +89,13 @@ const Courses = () => {
         setHasNextPage(pagination.hasNextPage);
         setHasPrevPage(pagination.hasPrevPage);
 
+        // Verificar inscripción para cada curso
+        const inscripciones: Record<string, boolean> = {};
+        for (const curso of cursosData) {
+          inscripciones[curso.id] = await verificarInscripcion(curso.id);
+        }
+        setCursosInscritos(inscripciones);
+
       } catch (err) {
         setError('Error al cargar los cursos');
         console.error(err);
@@ -119,6 +127,26 @@ const Courses = () => {
     if (!r.isConfirmed) return;
     await startCourse(curso.id);
     navigate(`/cursos/${curso.id}`);
+  };
+
+  // Agregar función para verificar inscripción
+  const verificarInscripcion = async (cursoId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+
+      const response = await axios.get(
+        `${baseURL}/api/cursos/${cursoId}/verificar-inscripcion`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      return response.data.inscrito;
+    } catch (error) {
+      console.error('Error al verificar inscripción:', error);
+      return false;
+    }
   };
 
   // Componente principal que incluye el banner y el contenido
@@ -310,7 +338,7 @@ const Courses = () => {
                   
                   <div className="mt-6 pt-4 border-t border-gray-100">
                     <button className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors">
-                      Comenzar Curso
+                      {cursosInscritos[curso.id] ? 'Ir al curso' : 'Comenzar curso'}
                     </button>
                   </div>
                 </div>
