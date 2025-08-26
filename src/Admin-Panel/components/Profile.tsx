@@ -82,6 +82,7 @@ const Profile = ({ }: ProfileProps) => {
       try {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
+        const userRole = localStorage.getItem('userRole');
 
         if (!userId || !token) {
           setLoading(false);
@@ -97,19 +98,21 @@ const Profile = ({ }: ProfileProps) => {
         const data = await response.json();
         
         if (response.ok) {
-          // Obtener nombre y apellido directamente del backend
-          let nombre = data.nombre || '';
-          let apellido = data.apellido || '';
-          
+          // Obtener cursos completados solo para usuarios no admin
+          let cursosCompletados = 0;
+          if (userRole !== 'admin') {
+            cursosCompletados = await fetchCursosCompletados(userId, token);
+          }
+
           setUserData({
             ...data,
             nombre_pila: data.nombre || '',
-            apellido: data.apellido || '', // <-- usa el campo directo
+            apellido: data.apellido || '',
+            cursosCompletados: cursosCompletados // Actualizar con el número real
           });
           
-          // Inicializar los estados de edición con los valores actuales
-          setNewNombre(nombre);
-          setNewApellido(apellido);
+          setNewNombre(data.nombre || '');
+          setNewApellido(data.apellido || '');
           setNewCorreo(data.correo || '');
           setNewImagen(data.imagenPerfil || '');
         }
@@ -122,6 +125,31 @@ const Profile = ({ }: ProfileProps) => {
 
     fetchUserData();
   }, []);
+
+  // Agregar esta función para obtener los cursos completados
+  const fetchCursosCompletados = async (userId: string, token: string) => {
+    try {
+      const response = await fetch(`${baseURL}/api/auth/${userId}/cursos-inscritos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Error al obtener cursos');
+      
+      const cursosInscritos = await response.json();
+      
+      // Filtrar solo los cursos con progreso 100%
+      const completados = cursosInscritos.filter((curso: any) => 
+        curso.progreso === 100
+      );
+
+      return completados.length;
+    } catch (error) {
+      console.error('Error al obtener cursos completados:', error);
+      return 0;
+    }
+  };
 
   // Manejador para cuando se selecciona una imagen
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -474,7 +502,11 @@ const Profile = ({ }: ProfileProps) => {
             </div>
             <div>
               <p className="text-sm text-gray-500">Cursos completados</p>
-              <p className="text-gray-800">{userData.cursosCompletados?.length || 0}</p>
+              <p className="text-gray-800">
+                {userData.rol === 'admin' 
+                  ? 'N/A' 
+                  : userData.cursosCompletados || 0}
+              </p>
             </div>
           </div>
         </div>
