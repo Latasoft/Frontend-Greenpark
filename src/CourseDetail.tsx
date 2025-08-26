@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 import CourseQuizModal from "./components/CourseQuizModal";
 import './styles/animations.css';
 
@@ -328,21 +329,52 @@ const CourseDetail = () => {
 
     const usuarioId = localStorage.getItem("userId");
     if (!usuarioId) {
-      alert("Debes iniciar sesión para finalizar el curso.");
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Debes iniciar sesión para finalizar el curso.',
+        confirmButtonColor: '#8BAE52'
+      });
       return;
     }
     
     // Activar estado de carga
     setFinalizandoCurso(true);
     
-    // Mostrar mensaje de carga
-    alert("Procesando solicitud de certificado. Por favor espera...");
+    // Mostrar mensaje de carga con temporizador
+    await Swal.fire({
+      icon: 'info',
+      title: 'Procesando',
+      text: 'Procesando solicitud de certificado. Por favor espera...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Mostrar mensaje con botón de aceptar después de los 3 segundos
+    await Swal.fire({
+      icon: 'info',
+      title: 'Procesando',
+      text: 'Procesando solicitud de certificado. Por favor espera...',
+      confirmButtonText: 'Aceptar',
+      confirmButtonColor: '#8BAE52',
+      allowOutsideClick: false
+    });
 
     // Contar los módulos con quiz
     const modulosConQuiz = curso.modulos.filter(m => m.quiz && m.quiz.preguntas.length > 0).length;
     
     if (modulosConQuiz === 0) {
-      alert("Este curso no tiene evaluaciones para completar.");
+      await Swal.fire({
+        icon: 'info',
+        title: 'Sin evaluaciones',
+        text: 'Este curso no tiene evaluaciones para completar.',
+        confirmButtonColor: '#8BAE52'
+      });
       return;
     }
     
@@ -391,14 +423,29 @@ const CourseDetail = () => {
           
           try {
             window.open(diplomaFullUrl, '_blank');
-            alert(`¡Felicidades! Has completado el curso. Tu certificado ha sido generado y se ha abierto en una nueva pestaña.`);
+            await Swal.fire({
+              icon: 'success',
+              title: '¡Felicidades!',
+              text: 'Has completado el curso. Tu certificado ha sido generado y se ha abierto en una nueva pestaña.',
+              confirmButtonColor: '#8BAE52'
+            });
           } catch (e) {
             console.error("Error al abrir la ventana:", e);
-            alert(`¡Felicidades! Has completado el curso. Tu certificado ha sido generado. Puedes acceder a él desde el botón "Ver certificado" en esta página.`);
+            await Swal.fire({
+              icon: 'success',
+              title: '¡Felicidades!',
+              text: 'Has completado el curso. Tu certificado ha sido generado. Puedes acceder a él desde el botón "Ver certificado" en esta página.',
+              confirmButtonColor: '#8BAE52'
+            });
           }
         } else {
           console.error("No se encontró diplomaUrl en la respuesta:", response.data);
-          alert(`¡Felicidades! Has completado el curso. Pero hubo un problema al generar el certificado. Por favor, contacta con soporte.`);
+          await Swal.fire({
+            icon: 'warning',
+            title: '¡Felicidades!',
+            text: 'Has completado el curso. Pero hubo un problema al generar el certificado. Por favor, contacta con soporte.',
+            confirmButtonColor: '#8BAE52'
+          });
         }
       } else {
         // El curso no está completado al 100%, solo actualizamos el progreso
@@ -413,11 +460,21 @@ const CourseDetail = () => {
           }
         );
         
-        alert(`Has completado ${porcentajeFinal}% del curso. Necesitas completar el 100% para obtener tu certificado.`);
+        await Swal.fire({
+          icon: 'info',
+          title: 'Progreso del curso',
+          text: `Has completado ${porcentajeFinal}% del curso. Necesitas completar el 100% para obtener tu certificado.`,
+          confirmButtonColor: '#8BAE52'
+        });
       }
     } catch (error) {
       console.error("Error al finalizar curso:", error);
-      alert("No se pudo finalizar el curso. Intenta más tarde.");
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo finalizar el curso. Intenta más tarde.',
+        confirmButtonColor: '#8BAE52'
+      });
     } finally {
       // Desactivar estado de carga
       setFinalizandoCurso(false);
@@ -779,7 +836,16 @@ const CourseDetail = () => {
                 onClick={() => {
                   // Copiar al portapapeles
                   navigator.clipboard.writeText(`${baseURL}${diplomaUrl}`);
-                  alert("URL copiada al portapapeles");
+                  Swal.fire({
+                    icon: 'success',
+                    title: '¡Copiado!',
+                    text: 'URL copiada al portapapeles',
+                    toast: true,
+                    position: 'bottom-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                  });
                 }}
               >
                 Copiar URL
