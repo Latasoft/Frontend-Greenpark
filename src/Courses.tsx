@@ -24,7 +24,7 @@ interface Curso {
 }
 
 const Courses = () => {
-  const { tipo } = useParams<{ tipo?: string }>();
+  const { tipo } = useParams<{ tipo: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -70,61 +70,35 @@ const Courses = () => {
       setError(null);
 
       try {
-        let url = "";
-        if (destacados === "true") {
-          url = `${baseURL}/api/cursos/destacados`;
+        let url = `${baseURL}/api/cursos/`;
+        
+        if (tipo) {
+          // Si viene de la ruta /cursos/dirigido/:tipo
+          url += `dirigido/${tipo}?page=${currentPage}&limit=9`;
         } else {
-          const tipoValido = tipo?.toLowerCase();
-
-          if (
-            tipoValido &&
-            !["docente", "estudiante", "comunidad"].includes(tipoValido)
-          ) {
-            setError("Categoría no válida");
-            setCursos([]);
-            setLoading(false);
-            return;
-          }
-
-          if (tipoValido) {
-            url = `${baseURL}/api/cursos/publico/${tipoValido}`;
-          } else {
-            // Agregar parámetros de búsqueda, ordenamiento y paginación
-            url = `${baseURL}/api/cursos/lista?page=${currentPage}&limit=9&search=${searchTerm}&sortBy=fechaInicio&order=${sortOrder}`;
-          }
+          // Ruta normal de cursos
+          url += `lista?page=${currentPage}&limit=9`;
         }
 
-        const token = localStorage.getItem("token");
-        const res = await axios.get(url, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
-
-        // Actualizar estados con la respuesta paginada
-        const { cursos, pagination } = res.data;
-        setCursos(cursos.map((curso: any) => ({
-          ...curso,
-          imagen: curso.imagen || curso.imagenUrl || "",
-          duracionHoras: curso.duracionHoras ?? 0,
-          herramientas: curso.herramientas || [],
-          loAprenderan: curso.loAprenderan || [],
-          dirigidoA: curso.dirigidoA || "General",
-          estado: curso.estado || "borrador"
-        })));
+        const response = await axios.get(url);
+        const { cursos: cursosData, pagination } = response.data;
         
+        setCursos(cursosData);
         setTotalPages(pagination.totalPages);
         setHasNextPage(pagination.hasNextPage);
         setHasPrevPage(pagination.hasPrevPage);
 
       } catch (err) {
-        setError("Error al cargar cursos");
+        setError('Error al cargar los cursos');
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCursos();
-  }, [tipo, destacados, currentPage, searchTerm, sortOrder]);
-
+  }, [tipo, currentPage]);
+  
   const startCourse = async (cursoId: string) => {
     const token = localStorage.getItem('token') || '';
     const res = await fetch(`${baseURL}/api/cursos/${cursoId}/inscribir`, {
