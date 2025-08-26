@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2'; // Add this import
+import '../../../src/styles/animations.css';
 
 interface Curso {
   id: string;
@@ -26,6 +27,8 @@ const Courses: React.FC = () => {
   // Add new state to track loading participants
   const [loadingParticipants, setLoadingParticipants] = useState<Record<string, boolean>>({});
   const [loadingDetails, setLoadingDetails] = useState(false);
+  // Agregar estado para animación de carga
+  const [isVisible, setIsVisible] = useState(false);
 
   const handleVerParticipantes = async (cursoId: string, cursoTitulo: string) => {
     setLoadingDetails(true);
@@ -97,79 +100,73 @@ const Courses: React.FC = () => {
   const fetchCursos = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseURL}/api/cursos/lista`);
-      if (!res.ok) throw new Error('Error al cargar los cursos');
-      const data = await res.json();
-      
-      // Set courses immediately with initial data
-      setCourses(data);
-      setLoading(false);
-
-      // Load participant counts for each course
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
-
-        const participantPromises = data.map(async (curso: Curso) => {
-          try {
-            const res = await fetch(`${baseURL}/api/cursos/${curso.id}/cantidadParticipantes`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            if (!res.ok) return 0;
-            const countData = await res.json();
-            return {
-              id: curso.id,
-              count: countData.cantidadParticipantes || 0
-            };
-          } catch {
-            return {
-              id: curso.id,
-              count: 0
-            };
-          }
-        });
-
-        // Initialize loading states
-        const loadingState: Record<string, boolean> = {};
-        data.forEach((curso: Curso) => {
-          loadingState[curso.id] = true;
-        });
-        setLoadingParticipants(loadingState);
-
-        // Wait for all participant counts to load
-        const participantCounts = await Promise.all(participantPromises);
-        
-        // Update courses with participant counts
-        setCourses(prevCourses => 
-          prevCourses.map(course => {
-            const participantData = participantCounts.find(p => p.id === course.id);
-            return {
-              ...course,
-              cantidadParticipantes: participantData?.count || 0
-            };
-          })
-        );
-
-        // Mark all as loaded
-        const completedLoadingState: Record<string, boolean> = {};
-        data.forEach((curso: Curso) => {
-          completedLoadingState[curso.id] = false;
-        });
-        setLoadingParticipants(completedLoadingState);
-      } catch (err) {
-        console.error('Error loading participant counts:', err);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No se encontró token de autenticación');
       }
+
+      const res = await fetch(`${baseURL}/api/cursos/lista`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al cargar los cursos');
+      }
+
+      const data = await res.json();
+      console.log('Cursos obtenidos:', data); // Para debugging
       
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      // Asegúrate de que data es un array
+      const cursosArray = Array.isArray(data.cursos) ? data.cursos : data;
+      setCourses(cursosArray);
+
+      // Cargar cantidad de participantes
+      const participantPromises = cursosArray.map(async (curso: Curso) => {
+        try {
+          const participantesRes = await fetch(
+            `${baseURL}/api/cursos/${curso.id}/cantidadParticipantes`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            }
+          );
+          
+          if (!participantesRes.ok) return { id: curso.id, count: 0 };
+          const countData = await participantesRes.json();
+          return {
+            id: curso.id,
+            count: countData.cantidadParticipantes || 0
+          };
+        } catch (error) {
+          console.error(`Error al obtener participantes para curso ${curso.id}:`, error);
+          return { id: curso.id, count: 0 };
+        }
+      });
+
+      const participantCounts = await Promise.all(participantPromises);
+      
+      setCourses(prevCurses => 
+        prevCurses.map(course => ({
+          ...course,
+          cantidadParticipantes: participantCounts.find(p => p.id === course.id)?.count || 0
+        }))
+      );
+
+    } catch (error) {
+      console.error('Error en fetchCursos:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido');
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCursos();
+    setIsVisible(true);
   }, []);
 
   // Replace the handleEliminarCurso function with this improved version
@@ -284,17 +281,58 @@ const Courses: React.FC = () => {
     }
   };
 
-  if (loading) return <p>Cargando cursos...</p>;
-  if (error) return <p>Error: {error}</p>;
+  // Reemplazar el loading simple por un skeleton loader
+  if (loading) {
+    return (
+      <div className="bg-white p-6 animate-fade-in">
+        <div className="flex justify-between items-center mb-6">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                {[...Array(5)].map((_, index) => (
+                  <th key={index} className="px-6 py-3">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, rowIndex) => (
+                <tr key={rowIndex} className="border-b">
+                  {[...Array(5)].map((_, colIndex) => (
+                    <td key={colIndex} className="px-6 py-4">
+                      <div 
+                        className="h-4 bg-gray-200 rounded animate-pulse"
+                        style={{
+                          animationDelay: `${(rowIndex + colIndex) * 0.1}s`
+                        }}
+                      ></div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className={`bg-white p-6 transition-all duration-500 ${
+      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+    }`}>
+      <div className="flex justify-between items-center mb-6 fade-in-up">
         <h2 className="text-2xl font-semibold text-[#1A3D33]">Cursos</h2>
         <div className="mt-6 flex justify-end">
           <button
             onClick={() => navigate('/admin/courses/new')}
-            className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -314,7 +352,7 @@ const Courses: React.FC = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto fade-in">
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
