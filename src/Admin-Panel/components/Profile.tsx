@@ -333,14 +333,12 @@ const Profile = ({ }: ProfileProps) => {
           }
           
           const data = await response.json();
-          
-          // Actualizar el estado local
           setUserData({
             ...userData,
-            nombre_pila: newNombre,
-            apellido: newApellido,
-            correo: newCorreo,
-            imagenPerfil: newImagen || userData.imagenPerfil,
+            nombre_pila: data.nombre,
+            apellido: data.apellido,
+            correo: data.correo,
+            imagenPerfil: data.imagenPerfil,
           });
           
           // Actualizar localStorage
