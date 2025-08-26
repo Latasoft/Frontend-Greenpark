@@ -21,13 +21,14 @@ interface Curso {
   dirigidoA?: string;
   estado?: string;
   rol?: string;
+  fechaInicio?: string; // Fecha de inicio del curso
 }
 
 const Courses = () => {
   const { tipo } = useParams<{ tipo: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  useAuth();
   
   // Estados separados para banner y cursos
   const [bannerLoaded, setBannerLoaded] = useState(false);
@@ -147,6 +148,20 @@ const Courses = () => {
       console.error('Error al verificar inscripción:', error);
       return false;
     }
+  };
+
+  // Modifica la función de ordenamiento antes del render
+  const ordenarCursos = (cursosArray: Curso[]) => {
+    return [...cursosArray].sort((a, b) => {
+      // Primero ordenar por inscripción
+      if (cursosInscritos[a.id] && !cursosInscritos[b.id]) return -1;
+      if (!cursosInscritos[a.id] && cursosInscritos[b.id]) return 1;
+      
+      // Si ambos tienen el mismo estado de inscripción, ordenar por fecha
+      const fechaA = new Date(a.fechaInicio || 0).getTime();
+      const fechaB = new Date(b.fechaInicio || 0).getTime();
+      return sortOrder === 'desc' ? fechaB - fechaA : fechaA - fechaB;
+    });
   };
 
   // Componente principal que incluye el banner y el contenido
@@ -278,14 +293,23 @@ const Courses = () => {
             ))
           ) : (
             // Tarjetas reales actualizadas para coincidir con Library
-            cursos.map((curso, index) => (
+            ordenarCursos(cursos).map((curso, index) => (
               <div
                 key={curso.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full fade-in"
+                className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border ${
+                  cursosInscritos[curso.id] 
+                    ? 'border-[#8BAE52] border-2' 
+                    : 'border-gray-100'
+                } flex flex-col h-full fade-in`}
                 style={{ animationDelay: `${200 + index * 100}ms` }}
                 onClick={() => handleConfirmStartCourse(curso)}
               >
                 <div className="relative">
+                  {cursosInscritos[curso.id] && (
+                    <div className="absolute top-4 right-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm z-10">
+                      Inscrito
+                    </div>
+                  )}
                   <span className="absolute top-4 left-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm capitalize z-10">
                     {curso.dirigidoA || "General"}
                   </span>
