@@ -446,7 +446,7 @@ const CourseDetail = () => {
           <button
             type="button"
             onClick={() => togglePdfVisibility(moduloIndex)}
-            className="text-sm bg-[#1A3D33] text-white px-3 py-1 rounded hover:bg-[#8BAE52] transition"
+            className="text-sm  text-white px-3 py-1 rounded hover:bg-[#8BAE52] transition"
           >
             {isVisible ? "Ocultar" : "Mostrar"}
           </button>
@@ -568,10 +568,13 @@ const CourseDetail = () => {
     <div className="min-h-screen bg-white max-w-5xl mx-auto p-4 sm:p-6">
       {/* Banner */}
       <div
-        className="relative h-64 sm:h-80 md:h-96 bg-cover bg-center rounded-lg mb-8 shadow-md"
-        style={{ backgroundImage: `url(${curso.imagen})` }}
+        className="relative h-64 sm:h-80 md:h-96 rounded-lg mb-8 shadow-md overflow-hidden"
       >
-        <div className="absolute inset-0 bg-[#1A3D33] opacity-90 rounded-lg" />
+        <div 
+          className="absolute inset-0 bg-cover bg-center blur-md scale-110"
+          style={{ backgroundImage: `url(${curso.imagen})` }}
+        />
+        <div className="absolute inset-0 bg-[#1A3D33] opacity-75 rounded-lg" />
         <div className="relative z-10 text-white p-6 sm:p-8 flex flex-col justify-center h-full">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3">
             {curso.titulo}

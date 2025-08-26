@@ -341,11 +341,11 @@ const QuizModal: React.FC<QuizModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4"
+      className="fixed inset-0 flex justify-center items-center z-50 p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-full overflow-auto p-6 relative">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-full overflow-auto p-6 relative shadow-lg">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-xl"
