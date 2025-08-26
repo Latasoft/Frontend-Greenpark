@@ -9,8 +9,6 @@ const UserMessagesPage = () => {
 
   return (
     <div className="p-4 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-6">Tus mensajes</h1>
-
       <div className="mb-8">
         <EnviarMensaje
           currentUserEmail={user.correo}
