@@ -3,12 +3,12 @@
 /* Animación para el banner */
 @keyframes bannerReveal {
   from {
-    transform: scale(1.05);
-    filter: brightness(0.8);
+    opacity: 0;
+    transform: scale(1.1) translateY(-10px);
   }
   to {
-    transform: scale(1);
-    filter: brightness(1);
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -117,4 +117,51 @@ tr:nth-child(4) {
 }
 tr:nth-child(5) {
   animation-delay: 0.5s;
+}
+
+/* Animaciones para CourseDetail */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.5s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideInFromBottom 0.5s ease-out forwards;
+}
+
+.animate-banner {
+  animation: bannerReveal 0.8s ease-out forwards;
+}
+
+/* Animación para módulos */
+.module-enter {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.module-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s ease-out;
 }

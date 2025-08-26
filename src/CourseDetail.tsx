@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import CourseQuizModal from "./components/CourseQuizModal";
+import './styles/animations.css';
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -75,6 +76,7 @@ const CourseDetail = () => {
   const [modulosCompletados, setModulosCompletados] = useState<ModuloCompletado[]>([]);
   const [diplomaUrl, setDiplomaUrl] = useState<string | null>(null);
   const [finalizandoCurso, setFinalizandoCurso] = useState<boolean>(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const fetchCurso = useCallback(async () => {
     if (!cursoId) return;
@@ -546,6 +548,10 @@ const CourseDetail = () => {
     );
   };
 
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
   if (loading) {
     return <p className="text-center mt-8 text-gray-600">Cargando curso...</p>;
   }
@@ -565,11 +571,13 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-5xl mx-auto p-4 sm:p-6">
-      {/* Banner */}
-      <div
-        className="relative h-64 sm:h-80 md:h-96 rounded-lg mb-8 shadow-md overflow-hidden"
-      >
+    <div className={`min-h-screen bg-white max-w-5xl mx-auto p-4 sm:p-6 opacity-0 ${
+      isVisible ? 'animate-fade-in-scale' : ''
+    }`}>
+      {/* Banner con animación */}
+      <div className={`relative h-64 sm:h-80 md:h-96 rounded-lg mb-8 shadow-md overflow-hidden opacity-0 ${
+        isVisible ? 'animate-banner' : ''
+      }`}>
         <div 
           className="absolute inset-0 bg-cover bg-center blur-md scale-110"
           style={{ backgroundImage: `url(${curso.imagen})` }}
@@ -590,7 +598,9 @@ const CourseDetail = () => {
       </div>
 
       {/* Herramientas */}
-      <section className="mb-8">
+      <section className={`mb-8 opacity-0 ${
+        isVisible ? 'animate-slide-in' : ''
+      }`} style={{ animationDelay: '0.3s' }}>
         <h2 className="text-2xl sm:text-3xl font-semibold text-[#1A3D33] mb-4">
           Herramientas
         </h2>
@@ -602,7 +612,9 @@ const CourseDetail = () => {
       </section>
 
       {/* Aprenderás */}
-      <section className="mb-10">
+      <section className={`mb-10 opacity-0 ${
+        isVisible ? 'animate-slide-in' : ''
+      }`} style={{ animationDelay: '0.4s' }}>
         <h2 className="text-2xl sm:text-3xl font-semibold text-[#1A3D33] mb-4">
           Aprenderás
         </h2>
@@ -615,107 +627,109 @@ const CourseDetail = () => {
         </ul>
       </section>
 
-      {/* Módulos */}
-      <section>
+      {/* Módulos con animación */}
+      <section className={`opacity-0 ${
+        isVisible ? 'animate-slide-in' : ''
+      }`} style={{ animationDelay: '0.5s' }}>
         <h2 className="text-2xl sm:text-3xl font-semibold text-[#1A3D33] mb-6">
           Módulos
         </h2>
 
-        {curso.modulos.length === 0 ? (
-          <p className="text-gray-600">No hay módulos disponibles.</p>
-        ) : (
-          <div className="space-y-6">
-            {curso.modulos.map((modulo, moduloIndex) => {
-              const keyId = modulo.id ?? moduloIndex;
-              return (
-                <div key={keyId} className="border rounded-lg shadow-sm">
-                  <button
-                    type="button"
-                    aria-expanded={openModulo === moduloIndex}
-                    className="w-full p-4 sm:p-5 flex justify-between items-center bg-gray-100 hover:bg-gray-200 text-[#1A3D33] text-sm sm:text-lg font-semibold rounded-t-lg text-left"
-                    onClick={() => toggleModulo(moduloIndex)}
-                  >
-                    <span className="flex-1 break-words pr-2 flex items-center">
-                      {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) && (
-                        <span className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </span>
-                      )}
-                      Módulo {moduloIndex + 1} - {modulo.nombre}
+        <div className="space-y-6">
+          {curso.modulos.map((modulo, moduloIndex) => (
+            <div 
+              key={modulo.id ?? moduloIndex} 
+              className="border rounded-lg shadow-sm opacity-0 animate-slide-in"
+              style={{ animationDelay: `${0.6 + moduloIndex * 0.1}s` }}
+            >
+              <button
+                type="button"
+                aria-expanded={openModulo === moduloIndex}
+                className="w-full p-4 sm:p-5 flex justify-between items-center bg-gray-100 hover:bg-gray-200 text-[#1A3D33] text-sm sm:text-lg font-semibold rounded-t-lg text-left"
+                onClick={() => toggleModulo(moduloIndex)}
+              >
+                <span className="flex-1 break-words pr-2 flex items-center">
+                  {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) && (
+                    <span className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     </span>
-                    <svg
-                      className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${
-                        openModulo === moduloIndex ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  {openModulo === moduloIndex && (
-                    <div className="p-4 sm:p-6 border-t border-gray-300 bg-white rounded-b-lg space-y-5">
-                      <p className="text-gray-700 text-sm sm:text-base">
-                        {modulo.descripcion}
-                      </p>
+                  )}
+                  Módulo {moduloIndex + 1} - {modulo.nombre}
+                </span>
+                <svg
+                  className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${
+                    openModulo === moduloIndex ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {openModulo === moduloIndex && (
+                <div className="p-4 sm:p-6 border-t border-gray-300 bg-white rounded-b-lg space-y-5">
+                  <p className="text-gray-700 text-sm sm:text-base">
+                    {modulo.descripcion}
+                  </p>
 
-                      {renderArchivosPDF(modulo, moduloIndex)}
-                      {renderEnlaces(modulo)}
+                  {renderArchivosPDF(modulo, moduloIndex)}
+                  {renderEnlaces(modulo)}
 
-                      {modulo.quiz && modulo.quiz.preguntas.length > 0 && (
-                        <>
-                          {/* Verificar si hay un intento previo aprobado para este módulo */}
-                          {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) ? (
-                            <div className="mt-2 space-y-2">
-                              <div className="flex items-center">
-                                <div className="w-5 h-5 bg-green-500 rounded-full mr-2 flex items-center justify-center">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                                <span className="text-green-700 font-medium">
-                                  Módulo completado - Puntaje: {modulosCompletados.find(m => m.moduloIndex === moduloIndex)?.porcentaje || 0}%
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                className="px-5 py-2 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#1A3D33] transition text-sm sm:text-base"
-                                onClick={() => handleAbrirQuiz(moduloIndex)}
-                              >
-                                Ver intento previo
-                              </button>
+                  {modulo.quiz && modulo.quiz.preguntas.length > 0 && (
+                    <>
+                      {/* Verificar si hay un intento previo aprobado para este módulo */}
+                      {modulosCompletados.some(m => m.moduloIndex === moduloIndex && m.aprobado) ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <div className="w-5 h-5 bg-green-500 rounded-full mr-2 flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="mt-2 px-5 py-2 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition text-sm sm:text-base"
-                              onClick={() => handleAbrirQuiz(moduloIndex)}
-                            >
-                              {quizResults[moduloIndex]
-                                ? `Evaluación completada - Puntaje: ${quizResults[moduloIndex].score}%`
-                                : "Completar Evaluación"}
-                            </button>
-                          )}
-                        </>
+                            <span className="text-green-700 font-medium">
+                              Módulo completado - Puntaje: {modulosCompletados.find(m => m.moduloIndex === moduloIndex)?.porcentaje || 0}%
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="px-5 py-2 bg-[#8BAE52] text-white font-semibold rounded hover:bg-[#1A3D33] transition text-sm sm:text-base"
+                            onClick={() => handleAbrirQuiz(moduloIndex)}
+                          >
+                            Ver intento previo
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mt-2 px-5 py-2 bg-[#1A3D33] text-white font-semibold rounded hover:bg-[#8BAE52] transition text-sm sm:text-base"
+                          onClick={() => handleAbrirQuiz(moduloIndex)}
+                        >
+                          {quizResults[moduloIndex]
+                            ? `Evaluación completada - Puntaje: ${quizResults[moduloIndex].score}%`
+                            : "Completar Evaluación"}
+                        </button>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+            </div>
+          ))}
+        </div>
       </section>
 
-      <div className="mt-10 space-y-4">
+      {/* Botones con animación */}
+      <div className={`mt-10 space-y-4 opacity-0 ${
+        isVisible ? 'animate-slide-in' : ''
+      }`} style={{ animationDelay: '0.7s' }}>
         <button
           type="button"
           onClick={handleFinalizarCurso}
