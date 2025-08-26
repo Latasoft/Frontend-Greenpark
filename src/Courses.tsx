@@ -39,7 +39,13 @@ const Courses = () => {
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPrevPage, setHasPrevPage] = useState(false);
+  
   // Animación del banner inmediata al montar el componente
   useEffect(() => {
     // Activar banner inmediatamente
@@ -65,7 +71,6 @@ const Courses = () => {
 
       try {
         let url = "";
-
         if (destacados === "true") {
           url = `${baseURL}/api/cursos/destacados`;
         } else {
@@ -84,7 +89,8 @@ const Courses = () => {
           if (tipoValido) {
             url = `${baseURL}/api/cursos/publico/${tipoValido}`;
           } else {
-            url = `${baseURL}/api/cursos/lista`;
+            // Agregar parámetros de búsqueda, ordenamiento y paginación
+            url = `${baseURL}/api/cursos/lista?page=${currentPage}&limit=9&search=${searchTerm}&sortBy=fechaInicio&order=${sortOrder}`;
           }
         }
 
@@ -93,25 +99,22 @@ const Courses = () => {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
 
-        // Normalizar campos para cada curso:
-        let cursosNormalizados: Curso[] = (res.data.cursos || res.data).map(
-          (curso: any) => ({
-            ...curso,
-            imagen: curso.imagen || curso.imagenUrl || "",
-            duracionHoras: curso.duracionHoras ?? 0,
-            herramientas: curso.herramientas || [],
-            loAprenderan: curso.loAprenderan || [],
-            dirigidoA: curso.dirigidoA || "General",
-            estado: curso.estado || "borrador"
-          })
-        );
+        // Actualizar estados con la respuesta paginada
+        const { cursos, pagination } = res.data;
+        setCursos(cursos.map((curso: any) => ({
+          ...curso,
+          imagen: curso.imagen || curso.imagenUrl || "",
+          duracionHoras: curso.duracionHoras ?? 0,
+          herramientas: curso.herramientas || [],
+          loAprenderan: curso.loAprenderan || [],
+          dirigidoA: curso.dirigidoA || "General",
+          estado: curso.estado || "borrador"
+        })));
+        
+        setTotalPages(pagination.totalPages);
+        setHasNextPage(pagination.hasNextPage);
+        setHasPrevPage(pagination.hasPrevPage);
 
-        // Filtrar cursos no publicados para usuarios no admin/docente
-        if (user && !['admin', 'docente'].includes(user.rol.toLowerCase())) {
-          cursosNormalizados = cursosNormalizados.filter(curso => curso.estado === 'publicado');
-        }
-
-        setCursos(cursosNormalizados);
       } catch (err) {
         setError("Error al cargar cursos");
       } finally {
@@ -120,7 +123,7 @@ const Courses = () => {
     };
 
     fetchCursos();
-  }, [tipo, destacados]);
+  }, [tipo, destacados, currentPage, searchTerm, sortOrder]);
 
   const startCourse = async (cursoId: string) => {
     const token = localStorage.getItem('token') || '';
@@ -189,12 +192,41 @@ const Courses = () => {
         </div>
       </section>
 
-      {/* Contenedor de cursos - MODIFICADO para coincidir con Library */}
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 transition-opacity duration-500 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`}>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        
-        {/* Cambiado gap-8 a gap-6 y agregado mb-12 para coincidir con Library */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12`}>
+        {/* Controles de búsqueda y filtrado */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+          {/* Barra de búsqueda */}
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Buscar cursos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52]"
+            />
+            <svg
+              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          {/* Selector de ordenamiento */}
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+            className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-[#8BAE52] focus:ring-1 focus:ring-[#8BAE52]"
+          >
+            <option value="desc">Más nuevo primero</option>
+            <option value="asc">Más antiguo primero</option>
+          </select>
+        </div>
+
+        {/* Contenedor de cursos - MODIFICADO para coincidir con Library */}
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12`}>
           {loading ? (
             // Skeleton loaders actualizados para coincidir con Library
             Array.from({ length: 6 }).map((_, index) => (
@@ -311,6 +343,27 @@ const Courses = () => {
               </div>
             ))
           )}
+        </div>
+
+        {/* Paginación */}
+        <div className="flex justify-center gap-2 mt-8">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={!hasPrevPage}
+            className="px-4 py-2 rounded-md bg-[#1A3D33] text-white disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span className="px-4 py-2">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={!hasNextPage}
+            className="px-4 py-2 rounded-md bg-[#1A3D33] text-white disabled:opacity-50"
+          >
+            Siguiente
+          </button>
         </div>
       </div>
     </div>
