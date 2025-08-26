@@ -49,6 +49,7 @@ const Courses = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPrevPage, setHasPrevPage] = useState(false);
   const [cursosInscritos, setCursosInscritos] = useState<Record<string, boolean>>({});
+  const [inscripciones, setInscripciones] = useState<Record<string, boolean>>({});
 
   // Animación del banner inmediata al montar el componente
   useEffect(() => {
@@ -171,25 +172,47 @@ const Courses = () => {
     }
   };
 
-  // Agregar función para verificar inscripción
-  const verificarInscripcion = async (cursoId: string) => {
-    try {
+  // Verificar inscripciones al cargar los cursos
+  useEffect(() => {
+    const verificarInscripciones = async (cursosData: Curso[]) => {
       const token = localStorage.getItem('token');
-      if (!token) return false;
+      if (!token) return;
 
-      const response = await axios.get(
-        `${baseURL}/api/cursos/${cursoId}/verificar-inscripcion`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      try {
+        // Verificar todas las inscripciones en paralelo
+        const verificaciones = await Promise.all(
+          cursosData.map(async (curso) => {
+            try {
+              const response = await axios.get(
+                `${baseURL}/api/cursos/${curso.id}/verificar-inscripcion`,
+                {
+                  headers: { Authorization: `Bearer ${token}` }
+                }
+              );
+              return { cursoId: curso.id, inscrito: response.data.inscrito };
+            } catch (error) {
+              console.error(`Error verificando inscripción para curso ${curso.id}:`, error);
+              return { cursoId: curso.id, inscrito: false };
+            }
+          })
+        );
 
-      return response.data.inscrito;
-    } catch (error) {
-      console.error('Error al verificar inscripción:', error);
-      return false;
+        // Actualizar el estado de inscripciones
+        const nuevasInscripciones = verificaciones.reduce((acc, { cursoId, inscrito }) => {
+          acc[cursoId] = inscrito;
+          return acc;
+        }, {} as Record<string, boolean>);
+
+        setInscripciones(nuevasInscripciones);
+      } catch (error) {
+        console.error('Error al verificar inscripciones:', error);
+      }
+    };
+
+    if (cursos.length > 0) {
+      verificarInscripciones(cursos);
     }
-  };
+  }, [cursos]);
 
   // Modifica la función de ordenamiento antes del render
   const ordenarCursos = (cursosArray: Curso[]) => {
@@ -203,6 +226,22 @@ const Courses = () => {
       const fechaB = new Date(b.fechaInicio || 0).getTime();
       return sortOrder === 'desc' ? fechaB - fechaA : fechaA - fechaB;
     });
+  };
+
+  // Modificar el renderizado del botón en las tarjetas de cursos
+  const renderBotonCurso = (curso: Curso) => {
+    const inscrito = inscripciones[curso.id];
+    return (
+      <button 
+        className={`w-full py-2 rounded-md transition-colors ${
+          inscrito 
+            ? 'bg-[#8BAE52] hover:bg-[#7a9847]' 
+            : 'bg-[#1A3D33] hover:bg-[#8BAE52]'
+        } text-white`}
+      >
+        {inscrito ? 'Ir al curso' : 'Comenzar curso'}
+      </button>
+    );
   };
 
   // Componente principal que incluye el banner y el contenido
@@ -338,7 +377,7 @@ const Courses = () => {
               <div
                 key={curso.id}
                 className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border ${
-                  cursosInscritos[curso.id] 
+                  inscripciones[curso.id] 
                     ? 'border-[#8BAE52] border-2' 
                     : 'border-gray-100'
                 } flex flex-col h-full fade-in`}
@@ -346,7 +385,7 @@ const Courses = () => {
                 onClick={() => handleConfirmStartCourse(curso)}
               >
                 <div className="relative">
-                  {cursosInscritos[curso.id] && (
+                  {inscripciones[curso.id] && (
                     <div className="absolute top-4 right-4 bg-[#8BAE52] text-white px-3 py-1 rounded-md text-sm z-10">
                       Inscrito
                     </div>
@@ -402,9 +441,7 @@ const Courses = () => {
                   </div>
                   
                   <div className="mt-6 pt-4 border-t border-gray-100">
-                    <button className="w-full bg-[#1A3D33] text-white py-2 rounded-md hover:bg-[#8BAE52] transition-colors">
-                      {cursosInscritos[curso.id] ? 'Ir al curso' : 'Comenzar curso'}
-                    </button>
+                    {renderBotonCurso(curso)}
                   </div>
                 </div>
               </div>
