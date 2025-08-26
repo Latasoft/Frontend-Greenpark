@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import axios from "axios";
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom'; // Add this import
+import Cropper from 'react-easy-crop';
 
 const baseURL =
   window.location.hostname === "localhost"
@@ -37,19 +38,64 @@ const CourseCreator = () => {
   const [loAprenderan, setLoAprenderan] = useState<string[]>([]);
   const [aprenderInput, setAprenderInput] = useState("");
   const [modulos, setModulos] = useState<Modulo[]>([]);
-
   const [loading, setLoading] = useState(false);
+
+  // --- Cropper states ---
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
   // --- Handlers ---
 
   const handleImagenChange = (file: File | null) => {
-    setImagen(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagenPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    } else {
+    if (!file) {
+      setImagen(null);
       setImagenPreview(null);
+      return;
+    }
+    
+    // Crear URL para la vista previa
+    const imageUrl = URL.createObjectURL(file);
+    setImageToCrop(imageUrl);
+    setShowCropper(true);
+  };
+
+  const onCropComplete = useCallback(
+    (_: any, croppedAreaPixels: any) => {
+      setCroppedAreaPixels(croppedAreaPixels);
+    },
+    []
+  );
+
+  const handleCropConfirm = async () => {
+    try {
+      if (!imageToCrop || !croppedAreaPixels) return;
+      
+      // Obtener la imagen recortada como blob
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      
+      // Crear vista previa
+      const previewUrl = URL.createObjectURL(croppedImage);
+      setImagenPreview(previewUrl);
+      
+      // Guardar el archivo recortado
+      const file = new File([croppedImage], 'cropped-image.jpg', { type: 'image/jpeg' });
+      setImagen(file);
+      
+      // Cerrar el cropper
+      setShowCropper(false);
+      setImageToCrop(null);
+      
+    } catch (error) {
+      console.error('Error al recortar la imagen:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Hubo un error al procesar la imagen',
+        confirmButtonColor: '#8BAE52'
+      });
     }
   };
 
@@ -204,6 +250,52 @@ const CourseCreator = () => {
       setLoading(false);
     }
   };
+
+  // Función auxiliar para crear la imagen recortada
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.src = url;
+  });
+
+  async function getCroppedImg(
+    imageSrc: string,
+    pixelCrop: { x: number; y: number; width: number; height: number }
+  ): Promise<Blob> {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('No 2d context');
+    }
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          throw new Error('Canvas is empty');
+        }
+        resolve(blob);
+      }, 'image/jpeg');
+    });
+  }
 
   // Get today's date in YYYY-MM-DD format for min attribute
   const today = new Date().toISOString().split('T')[0];
@@ -699,6 +791,62 @@ const CourseCreator = () => {
         )}
         {loading ? "Creando..." : "Crear Curso"}
       </button>
+
+      {/* Modal para recorte de imagen */}
+      {showCropper && imageToCrop && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-xl">
+            <h3 className="text-xl font-medium text-gray-900 mb-4">
+              Ajusta la imagen del curso
+            </h3>
+            <div className="relative h-80 w-full mb-4">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={16/9}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="zoom" className="block text-sm font-medium text-gray-700 mb-1">
+                Zoom
+              </label>
+              <input
+                type="range"
+                id="zoom"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCropper(false);
+                  setImageToCrop(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCropConfirm}
+                className="px-4 py-2 bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-colors"
+              >
+                Aplicar y guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </form>
       </div>
     </div>

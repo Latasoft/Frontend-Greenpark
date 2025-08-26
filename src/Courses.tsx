@@ -41,7 +41,7 @@ const Courses = () => {
 
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,7 +72,7 @@ const Courses = () => {
   useEffect(() => {
     const fetchCursos = async () => {
       setLoading(true);
-      setError(null);
+      // setError(null);
 
       try {
         let url = `${baseURL}/api/cursos/`;
@@ -105,7 +105,7 @@ const Courses = () => {
         setCursosInscritos(inscripciones);
 
       } catch (err) {
-        setError('Error al cargar los cursos');
+        // setError('Error al cargar los cursos');
         console.error(err);
       } finally {
         setLoading(false);
@@ -249,6 +249,7 @@ const Courses = () => {
             ? 'bg-[#8BAE52] hover:bg-[#7a9847]' 
             : 'bg-[#1A3D33] hover:bg-[#8BAE52]'
         } text-white`}
+        onClick={() => handleConfirmStartCourse(curso)}
       >
         {inscrito ? 'Ir al curso' : 'Comenzar curso'}
       </button>
@@ -333,15 +334,18 @@ const Courses = () => {
           </select>
         </div>
 
-        {/* Contenedor de cursos - MODIFICADO para coincidir con Library */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12`}>
+        {/* Contenedor de cursos con animación */}
+        <div 
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 transition-all duration-500 ${
+            cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
           {loading ? (
-            // Skeleton loaders actualizados para coincidir con Library
+            // Skeleton loaders
             Array.from({ length: 6 }).map((_, index) => (
               <div 
                 key={index} 
-                className="bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col h-full animate-pulse"
-                style={{ animationDelay: `${200 + index * 100}ms` }}
+                className={`bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col h-full animate-pulse transition-all duration-500 delay-${index * 100}`}
               >
                 {/* Contenido del skeleton sin cambios */}
                 <div className="relative">
@@ -383,17 +387,16 @@ const Courses = () => {
               </div>
             ))
           ) : (
-            // Tarjetas reales actualizadas para coincidir con Library
+            // Tarjetas reales con animación escalonada
             ordenarCursos(cursos).map((curso, index) => (
               <div
                 key={curso.id}
-                className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border ${
-                  inscripciones[curso.id] 
-                    ? 'border-[#8BAE52] border-2' 
-                    : 'border-gray-100'
-                } flex flex-col h-full fade-in`}
-                style={{ animationDelay: `${200 + index * 100}ms` }}
-                onClick={() => handleConfirmStartCourse(curso)}
+                className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-500 border ${
+                  inscripciones[curso.id] ? 'border-[#8BAE52] border-2' : 'border-gray-100'
+                } flex flex-col h-full ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                style={{ 
+                  transitionDelay: `${index * 100}ms`,
+                }}
               >
                 <div className="relative">
                   {inscripciones[curso.id] && (

@@ -129,7 +129,7 @@ const AdminPanel = () => {
           </div>
           
           <div className="border-t border-[#8BAE52]/20 pt-2 mt-2">
-            {menuItems.slice(-1).map((item, index) => {
+            {menuItems.slice(-1).map((item) => {
               const Icon = item.icon;
               return (
                 <button

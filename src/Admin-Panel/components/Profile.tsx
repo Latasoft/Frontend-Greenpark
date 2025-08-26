@@ -60,14 +60,10 @@ const baseURL =
 const Profile = ({ }: ProfileProps) => {
   const [userData, setUserData] = useState<any>({});
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false); // Restaurar este estado
   const [uploading, setUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   
   // Estados para edición
-  const [newNombre, setNewNombre] = useState('');
-  const [newApellido, setNewApellido] = useState('');
-  const [newCorreo, setNewCorreo] = useState('');
   const [newImagen, setNewImagen] = useState<string>('');
   
   // Estados para manejo de imagen
@@ -110,10 +106,6 @@ const Profile = ({ }: ProfileProps) => {
             apellido: data.apellido || '',
             cursosCompletados: cursosCompletados // Actualizar con el número real
           });
-          
-          setNewNombre(data.nombre || '');
-          setNewApellido(data.apellido || '');
-          setNewCorreo(data.correo || '');
           setNewImagen(data.imagenPerfil || '');
         }
       } catch (error) {
