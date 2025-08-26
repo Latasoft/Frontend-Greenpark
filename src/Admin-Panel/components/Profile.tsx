@@ -493,23 +493,22 @@ const Profile = ({ }: ProfileProps) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Estadísticas</h2>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-500">Cursos inscritos</p>
-              <p className="text-gray-800">{userData.cursosInscritos?.length || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Cursos completados</p>
-              <p className="text-gray-800">
-                {userData.rol === 'admin' 
-                  ? 'N/A' 
-                  : userData.cursosCompletados || 0}
-              </p>
+        {/* Solo mostrar estadísticas si NO es admin */}
+        {userData.rol !== 'admin' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Estadísticas</h2>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-500">Cursos inscritos</p>
+                <p className="text-gray-800">{userData.cursosInscritos?.length || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Cursos completados</p>
+                <p className="text-gray-800">{userData.cursosCompletados || 0}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Modal para recorte de imagen */}
