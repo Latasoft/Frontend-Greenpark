@@ -1,7 +1,37 @@
-# Ignorar dependencias y carpetas temporales
-node_modules/
-dist/
-build/
-.vscode/
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production
+dist
+build
+
+# Testing
+coverage
+
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Netlify
+.netlify
