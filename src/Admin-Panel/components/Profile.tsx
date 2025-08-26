@@ -57,7 +57,7 @@ const baseURL =
     ? "http://localhost:3000"
     : "https://greenpark-backend-0ua6.onrender.com";
 
-const Profile = ({ isAdminPanel = false }: ProfileProps) => {
+const Profile = ({ }: ProfileProps) => {
   const [userData, setUserData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false); // Restaurar este estado
@@ -136,7 +136,7 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
 
   // Función para manejar el fin del recorte
   const onCropComplete = useCallback(
-    (croppedArea: any, croppedAreaPixels: any) => {
+    (_: any, croppedAreaPixels: any) => {
       setCroppedAreaPixels(croppedAreaPixels);
     },
     []
@@ -198,9 +198,7 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileSelect(event);
-  };
+  // Removed unused handleImageUpload function
 
   const openEditProfileModal = () => {
     Swal.fire({
@@ -308,51 +306,53 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
         
         try {
           const token = localStorage.getItem('token');
+          const userId = localStorage.getItem('userId');
           
-          if (!userData.id || !token) {
+          if (!userId || !token) {
             Swal.showValidationMessage('No se pudo identificar el usuario');
             return false;
           }
           
-          // Construir nombre completo
-          const nombreCompleto = `${nombre} ${apellido}`;
-          
-          const response = await fetch(`${baseURL}/api/auth/users/${userData.id}/profile`, {
+          const response = await fetch(`${baseURL}/api/auth/users/${userId}/profile`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
-              nombre: nombreCompleto,
+              nombre: nombre,           // Cambio aquí: enviamos nombre y apellido separados
               apellido: apellido,
               correo: correo,
-              imagenPerfil: newImagen,
+              imagenPerfil: newImagen || userData.imagenPerfil,
             }),
           });
           
-          const data = await response.json();
-          
           if (!response.ok) {
-            throw new Error(data.message || 'Error al actualizar el perfil');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al actualizar el perfil');
           }
           
-          // Actualizar el estado local y localStorage
+          const data = await response.json();
+          
+          // Actualizar el estado local
           setUserData({
             ...userData,
-            nombre: nombreCompleto,
-            nombre_pila: nombre,
-            apellido: apellido,
-            correo: correo,
-            imagenPerfil: newImagen,
+            nombre_pila: newNombre,
+            apellido: newApellido,
+            correo: newCorreo,
+            imagenPerfil: newImagen || userData.imagenPerfil,
           });
           
-          localStorage.setItem('userName', nombreCompleto);
+          // Actualizar localStorage
+          localStorage.setItem('userName', `${nombre} ${apellido}`);
           localStorage.setItem('userCorreo', correo);
-          localStorage.setItem('imagenPerfil', newImagen);
+          if (newImagen) {
+            localStorage.setItem('imagenPerfil', newImagen);
+          }
           
           return data;
         } catch (error: any) {
+          console.error('Error updating profile:', error);
           Swal.showValidationMessage(`Error: ${error.message}`);
           return false;
         }
@@ -366,21 +366,16 @@ const Profile = ({ isAdminPanel = false }: ProfileProps) => {
           confirmButtonColor: '#8BAE52',
           timer: 3000,
           timerProgressBar: true
+        }).then(() => {
+          // Recargar los datos del usuario
+          window.location.reload();
         });
       }
     });
   };
 
   // Handler para cancelar la edición
-  const handleCancel = () => {
-    setEditing(false);
-    // Restaurar valores originales
-    setNewNombre(userData.nombre_pila || '');
-    setNewApellido(userData.apellido || '');
-    setNewCorreo(userData.correo || '');
-    setNewImagen(userData.imagenPerfil || '');
-    setPreviewImage(null);
-  };
+  // (Eliminado porque no se utiliza)
 
   if (loading) {
     return (
