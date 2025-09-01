@@ -13,7 +13,7 @@ const Contact = () => {
     setStatus('sending');
 
     try {
-      const res = await fetch('https://greenpark-backend-0ua6.onrender.com/api/mail/send', {
+      const res = await fetch('https://backend-greenpark.onrender.com/api/mail/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, correo, mensaje }),

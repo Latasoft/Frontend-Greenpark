@@ -155,7 +155,7 @@ const QuizModal = ({
       const baseURL =
         window.location.hostname === "localhost"
           ? "http://localhost:3000"
-          : "https://greenpark-backend-0ua6.onrender.com";
+          : "https://backend-greenpark.onrender.com";
       
       // Construir el payload con todos los datos necesarios
       const payload = {

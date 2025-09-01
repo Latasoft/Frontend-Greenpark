@@ -11,7 +11,7 @@ interface Participante {
 const baseURL =
   window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
-    : 'https://greenpark-backend-0ua6.onrender.com';
+    : 'https://backend-greenpark.onrender.com';
 
 const ParticipantesCurso: React.FC = () => {
   const { id } = useParams<{ id: string }>();

@@ -7,7 +7,7 @@ import Cropper from 'react-easy-crop';
 const baseURL =
   window.location.hostname === "localhost"
     ? "http://localhost:3000"
-    : "https://greenpark-backend-0ua6.onrender.com";
+    : "https://backend-greenpark.onrender.com";
 
 interface Quiz {
   preguntas: any[]; // Puedes mejorar el tipado cuando definas la estructura exacta

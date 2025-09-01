@@ -25,7 +25,7 @@ const Library = () => {
   const baseURL =
     window.location.hostname === 'localhost'
       ? 'http://localhost:3000'
-      : 'https://greenpark-backend-0ua6.onrender.com';
+      : 'https://backend-greenpark.onrender.com';
 
   // Verificar si el usuario está autenticado
   useEffect(() => {
@@ -235,7 +235,7 @@ const Library = () => {
               </svg>
             </button>
             <iframe
-              src={`https://greenpark-backend-0ua6.onrender.com/api/books/download/${previewBookId}`}
+              src={`https://backend-greenpark.onrender.com/api/books/download/${previewBookId}`}
               className="w-full h-full rounded"
               title="Vista previa del libro"
             ></iframe>

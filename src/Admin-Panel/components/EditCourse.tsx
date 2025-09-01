@@ -52,7 +52,7 @@ interface EditCourseProps {
 const baseURL =
   window.location.hostname === "localhost"
     ? "http://localhost:3000"
-    : "https://greenpark-backend-0ua6.onrender.com";
+    : "https://backend-greenpark.onrender.com";
 
 const EditCourse = ({ cursoId }: EditCourseProps) => {
   const navigate = useNavigate(); // Add this hook
