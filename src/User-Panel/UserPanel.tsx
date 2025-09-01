@@ -8,6 +8,7 @@ import PageTitle from '../components/PageTitle';
 import Profile from '../Admin-Panel/components/Profile';
 import UserCourses from './components/UserCourses';
 import Messages from './components/UserMessagesPage';
+import Swal from 'sweetalert2'; // Añadir esta importación
 
 const UserPanel = () => {
   const [currentSection, setCurrentSection] = useState('profile');
@@ -28,12 +29,24 @@ const UserPanel = () => {
 
   const handleMenuClick = (sectionId: string) => {
     if (sectionId === 'logout') {
-      // Limpiar localStorage (o lo que uses para auth)
-      localStorage.clear();
-      // Redirigir a login o home
-      navigate('/login');
+      Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro que deseas cerrar tu sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#8BAE52',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, cerrar sesión',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.clear();
+          navigate('/login');
+        }
+      });
       return;
     }
+    
     setCurrentSection(sectionId);
     switch(sectionId) {
       case 'profile':

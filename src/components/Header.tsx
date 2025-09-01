@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo-nuevo-negro.jpeg';
+import Swal from 'sweetalert2'; // Añadir esta importación
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,10 +31,22 @@ const Header = () => {
     }
   };
 
-
   const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: '¿Estás seguro que deseas cerrar tu sesión?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.clear();
+        navigate('/login');
+      }
+    });
   };
 
   return (

@@ -7,6 +7,7 @@ import CourseCreator from './components/CourseCreator';
 import Messages from './components/AdminMessagesPage';
 import Library from './components/Library';
 import PageTitle from '../components/PageTitle';
+import Swal from 'sweetalert2'; // Añadir esta importación
 import { 
   UserIcon, AcademicCapIcon, DocumentTextIcon, ChatBubbleLeftIcon, 
   BookOpenIcon, ArrowRightOnRectangleIcon 
@@ -25,11 +26,24 @@ const AdminPanel = () => {
   }, []);
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('isAdmin');
-    navigate('/login');
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: '¿Estás seguro que deseas cerrar tu sesión?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('isAdmin');
+        navigate('/login');
+      }
+    });
   };
 
   const menuItems = [
