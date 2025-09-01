@@ -190,35 +190,45 @@ const Profile = ({ }: ProfileProps) => {
       const previewUrl = URL.createObjectURL(croppedImage);
       setPreviewImage(previewUrl);
       
-      // Crear FormData para subir a Cloudinary
+      // Crear FormData para subir al backend
       const formData = new FormData();
-      formData.append('file', croppedImage, 'profile-image.jpg');
-      formData.append('upload_preset', 'unsigned_preset'); // Tu preset
-      formData.append('cloud_name', 'dmmlobp9k'); // Tu Cloud name
+      formData.append('image', croppedImage, 'profile-image.jpg');
 
-      // Subir a Cloudinary
-      const response = await fetch(`https://api.cloudinary.com/v1_1/dmmlobp9k/image/upload`, {
+      // Subir al backend (que maneja Cloudinary)
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${baseURL}/api/upload/profile-image`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: formData,
       });
 
       const data = await response.json();
       
-      if (data.secure_url) {
-        setNewImagen(data.secure_url);
-      } else {
+      if (data.success && data.imageUrl) {
+        setNewImagen(data.imageUrl);
+        
+        // Cerrar el cropper
+        setShowCropper(false);
+        setImageToCrop(null);
+        
+        // Mostrar breve mensaje de éxito
         Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo subir la imagen',
-          confirmButtonColor: '#8BAE52'
+          icon: 'success',
+          title: 'Imagen actualizada',
+          text: 'La imagen se ha subido correctamente',
+          confirmButtonColor: '#8BAE52',
+          timer: 1500,
+          timerProgressBar: true,
+          willClose: () => {
+            // Volver a abrir el modal de edición
+            setTimeout(() => openEditProfileModal(), 100);
+          }
         });
+      } else {
+        throw new Error(data.message || 'Error al subir la imagen');
       }
-      
-      // Cerrar el cropper
-      setShowCropper(false);
-      setImageToCrop(null);
-      
     } catch (error) {
       console.error('Error al recortar/subir la imagen:', error);
       Swal.fire({
@@ -227,6 +237,10 @@ const Profile = ({ }: ProfileProps) => {
         text: 'Hubo un error al procesar la imagen',
         confirmButtonColor: '#8BAE52'
       });
+      
+      // Cerrar el cropper en caso de error
+      setShowCropper(false);
+      setImageToCrop(null);
     } finally {
       setUploading(false);
     }
@@ -354,7 +368,7 @@ const Profile = ({ }: ProfileProps) => {
               'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
-              nombre: nombre,           // Cambio aquí: enviamos nombre y apellido separados
+              nombre: nombre,
               apellido: apellido,
               correo: correo,
               imagenPerfil: newImagen || userData.imagenPerfil,
@@ -396,11 +410,13 @@ const Profile = ({ }: ProfileProps) => {
           text: 'Tu información de perfil ha sido actualizada exitosamente',
           icon: 'success',
           confirmButtonColor: '#8BAE52',
-          timer: 3000,
-          timerProgressBar: true
-        }).then(() => {
-          // Recargar los datos del usuario
-          window.location.reload();
+          // Eliminar el timer para que no se cierre automáticamente
+          // timer: 3000,
+          // timerProgressBar: true,
+          willClose: () => {
+            // Asegurar que la página se recargue cuando se cierre el SweetAlert
+            window.location.reload();
+          }
         });
       }
     });
