@@ -45,7 +45,22 @@ const Records = () => {
     fetchUsuarios();
   }, []);
 
-  const aprobarUsuario = async (userId: string) => {
+  const aprobarUsuario = async (userId: string, userName: string) => {
+    // Show SweetAlert confirmation dialog
+    const result = await Swal.fire({
+      title: '¿Aprobar usuario?',
+      text: `¿Estás seguro de aprobar al usuario ${userName}? Una vez aprobado, podrá acceder a la plataforma.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#8BAE52',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, aprobar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    // If user cancels, do nothing
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('token');
       await axios.put(
@@ -57,10 +72,25 @@ const Records = () => {
           },
         }
       );
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Usuario aprobado',
+        text: 'El usuario ha sido aprobado exitosamente',
+        confirmButtonColor: '#8BAE52',
+      });
+
       fetchUsuarios();
     } catch (error) {
       console.error('Error al aprobar usuario', error);
-      alert('No se pudo aprobar el usuario');
+      // Show error message
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo aprobar el usuario. Por favor intenta nuevamente.',
+        confirmButtonColor: '#8BAE52',
+      });
     }
   };
 
@@ -159,7 +189,7 @@ const Records = () => {
                     <div className="flex space-x-2">
                       {!user.aprobado && (
                         <button
-                          onClick={() => aprobarUsuario(user.id)}
+                          onClick={() => aprobarUsuario(user.id, user.nombre)}
                           className="px-3 py-1 text-sm bg-[#8BAE52] text-white rounded-md hover:bg-[#1A3D33] transition-colors"
                         >
                           Aprobar
