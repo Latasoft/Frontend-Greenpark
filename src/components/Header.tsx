@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo-nuevo-negro.jpeg';
-import Swal from 'sweetalert2'; // Añadir esta importación
+import logo from '../assets/logo-nuevo-negro.png';
+import Swal from 'sweetalert2';
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'; // Importar icono
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -125,9 +126,10 @@ const Header = () => {
 
                 <button
                   onClick={handleLogout}
-                  className="text-[#1A3D33] hover:text-red-600 text-sm font-medium transition-colors"
+                  className="text-[#1A3D33] hover:text-red-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  title="Cerrar sesión"
                 >
-                  Salir
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
                 </button>
               </>
             ) : (
